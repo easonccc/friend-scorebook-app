@@ -1,0 +1,45 @@
+<view class="page">
+
+  <view class="subhead">
+    <view class="back" bindtap="goBack">‹</view>
+    <view class="sub-title">我的资料</view>
+  </view>
+
+  <!-- 当前头像预览 + 昵称 -->
+  <view class="card preview-card">
+    <view class="preview-avatar">{{avatarEmoji}}</view>
+    <view class="preview-name">{{nickname || '我'}}</view>
+    <view class="preview-role badge {{role === 'admin' ? 'win' : 'draw'}}">{{role === 'admin' ? '管理员' : '普通用户'}}</view>
+  </view>
+
+  <!-- 选择头像 -->
+  <view class="card">
+    <view class="card-title">选择头像</view>
+    <view class="avatar-grid">
+      <view
+        wx:for="{{avatarList}}"
+        wx:key="key"
+        class="avatar-item {{avatar === item.key ? 'on' : ''}}"
+        data-key="{{item.key}}"
+        bindtap="pickAvatar"
+      >{{item.emoji}}</view>
+    </view>
+    <view class="avatar-tip">只能从预置头像里选，不支持上传</view>
+  </view>
+
+  <!-- 昵称 -->
+  <view class="card">
+    <view class="card-title">昵称</view>
+    <input
+      class="name-input"
+      value="{{nickname}}"
+      placeholder="给自己起个名字"
+      placeholder-class="ph"
+      maxlength="8"
+      bindinput="onNameInput"
+    />
+    <view class="name-tip">最多 8 个字，朋友在战绩里会看到这个名字</view>
+    <button class="btn-primary" bindtap="save" disabled="{{saving}}">保存</button>
+  </view>
+
+</view>

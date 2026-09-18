@@ -1,0 +1,42 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/record/record",
+    "pages/stats/stats",
+    "pages/settings/settings",
+    "pages/detail/detail",
+    "pages/join/join",
+    "pages/profile/profile",
+    "pages/user-list/user-list"
+  ],
+  "window": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#FBF6EE",
+    "backgroundTextStyle": "dark",
+    "enablePullDownRefresh": false
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "#A8A296",
+    "selectedColor": "#3E9B6E",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/stats/stats",
+        "text": "统计"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "设置"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

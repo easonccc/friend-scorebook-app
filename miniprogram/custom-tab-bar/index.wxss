@@ -1,0 +1,68 @@
+/* custom-tab-bar/index.wxss */
+.tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -6rpx 30rpx rgba(58, 55, 47, 0.06);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+/* 弹框（底部抽屉）打开时隐藏 TabBar，避免框架级图层盖住弹框底部 */
+.tab-bar.is-hidden { display: none; }
+.tab-inner {
+  display: flex;
+  height: 110rpx;
+  align-items: stretch;
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rpx;
+  color: #A8A296;
+  position: relative;
+}
+.tab-item.active {
+  color: #3E9B6E;
+}
+.tab-icon {
+  font-size: 40rpx;
+  line-height: 1;
+}
+.tab-text {
+  font-size: 20rpx;
+}
+
+/* 中间凸起的「记一场」 */
+.tab-item.center {
+  flex: 1.1;
+}
+.center-btn {
+  position: absolute;
+  top: -36rpx;
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 50%;
+  background: linear-gradient(160deg, #7FCE9F, #4FAE7E);
+  color: #FFF;
+  font-size: 56rpx;
+  font-weight: 600;
+  line-height: 104rpx;
+  text-align: center;
+  box-shadow: 0 12rpx 28rpx rgba(79, 174, 126, 0.45);
+  border: 8rpx solid #FBF6EE;
+  box-sizing: content-box;
+}
+.center-btn:active {
+  transform: scale(0.92);
+}
+/* 没有比赛空间时禁用「记一场」：灰显 + 去阴影 */
+.center-btn.disabled {
+  background: #C9D2CB;
+  box-shadow: 0 8rpx 18rpx rgba(150, 150, 150, 0.25);
+  color: #FBF6EE;
+}

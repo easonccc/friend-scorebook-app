@@ -1,0 +1,200 @@
+<view class="page">
+
+  <!-- 顶部 -->
+  <view class="subhead" style="margin-top: 72rpx;margin-bottom: 28rpx;display: flex;align-items: center;justify-content: space-between;">
+  <view style="display: flex;align-items: center;">
+     <view class="back" bindtap="goBack">‹</view>
+    <view class="sub-title" style="width: 120px">{{isEdit ? '编辑比赛' : '记一场'}}</view>
+  </view>
+     <!-- 比赛类型（点开可切换，避开右上角胶囊） -->
+  <view class="type-chip" bindtap="openTypeSheet" >{{typeEmoji}} {{type}} <text class="caret">▾</text></view>
+  </view>
+
+ 
+
+  <!-- 谁 vs 谁（新增模式下点击可切换朋友，对齐原型 rec-space 风格） -->
+  <view class="vs-mini {{isEdit ? 'locked' : ''}}" bindtap="openSpaceSheet">
+    <text class="vs-ava">{{meAvatar}}</text>
+    <text class="vs-me">{{meName}}</text>
+    <text class="vs-x">VS</text>
+    <text class="vs-fr">{{friendName}}</text>
+    <text class="vs-ava">{{frAvatar}}</text>
+    <text class="vs-switch" wx:if="{{!isEdit}}">切换 ▾</text>
+  </view>
+
+  <!-- 比分核心区（数字可直接输入，步进按钮微调） -->
+  <view class="card score-card">
+    <view class="score-row">
+      <!-- 我 -->
+      <view class="score-col">
+        <view class="score-name">{{meName}}</view>
+        <view class="stepper">
+          <view class="step-btn" data-side="a" data-delta="-1" bindtap="tapScore">−</view>
+          <input
+            class="score-num"
+            type="number"
+            value="{{a}}"
+            data-side="a"
+            bindinput="onScoreInput"
+          />
+          <view class="step-btn" data-side="a" data-delta="1" bindtap="tapScore">＋</view>
+        </view>
+      </view>
+
+      <view class="score-colon">:</view>
+
+      <!-- 朋友 -->
+      <view class="score-col">
+        <view class="score-name">{{friendName}}</view>
+        <view class="stepper">
+          <view class="step-btn" data-side="b" data-delta="-1" bindtap="tapScore">−</view>
+          <input
+            class="score-num"
+            type="number"
+            value="{{b}}"
+            data-side="b"
+            bindinput="onScoreInput"
+          />
+          <view class="step-btn" data-side="b" data-delta="1" bindtap="tapScore">＋</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="derived">
+      <text class="derived-total">共 {{total}} 局</text>
+      <text class="badge {{winClass}}">{{winText}}</text>
+    </view>
+    <view class="score-tip">点比分数字可直接输入 · 总局数自动相加</view>
+  </view>
+
+  <!-- 辅助信息 -->
+  <view class="card info-card">
+    <view class="info-row" bindtap="openTimeSheet">
+      <text class="info-label">🕐 时间</text>
+      <text class="info-value">{{timeText}}</text>
+      <text class="info-arrow">›</text>
+    </view>
+
+    <view class="info-row">
+      <text class="info-label">📍 地点</text>
+      <input
+        class="info-input"
+        value="{{loc}}"
+        placeholder="选填，比如：江滩台球俱乐部"
+        placeholder-class="ph"
+        maxlength="20"
+        bindinput="onLocInput"
+      />
+    </view>
+
+    <view class="info-block">
+      <text class="info-label">⏱ 时长</text>
+      <view class="dur-chips">
+        <view
+          wx:for="{{durOptions}}"
+          wx:key="v"
+          class="dur-chip {{dur === item.v && !durCustom ? 'on' : ''}}"
+          data-v="{{item.v}}"
+          bindtap="pickDur"
+        >{{item.label}}</view>
+      </view>
+      <view class="dur-custom">
+        <text class="dur-custom-label">或输入分钟</text>
+        <input
+          class="dur-input"
+          type="number"
+          value="{{durCustom}}"
+          placeholder="52"
+          placeholder-class="ph"
+          bindinput="onDurInput"
+        />
+        <text class="dur-unit">分钟</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 保存 -->
+  <button class="btn-primary save-btn" bindtap="onSave" disabled="{{saving}}">
+    {{isEdit ? '保存修改' : '保存比赛'}}
+  </button>
+
+  <!-- 选择朋友弹层（新增模式） -->
+  <view wx:if="{{spaceSheet}}" class="mask" bindtap="closeSpaceSheet"></view>
+  <view wx:if="{{spaceSheet}}" class="sheet">
+    <view class="sheet-title">选择朋友</view>
+    <scroll-view class="space-scroll" scroll-y>
+      <view
+        wx:for="{{spaceOptions}}"
+        wx:key="_id"
+        class="space-item {{item.cur ? 'on' : ''}}"
+        data-id="{{item._id}}"
+        bindtap="pickSpace"
+      >
+        <view class="space-avatar">{{item.emoji}}</view>
+        <view class="space-main">
+          <view class="space-name">
+            {{item.name}}
+            <text class="tag-def" wx:if="{{item.isDef}}">默认</text>
+            <text class="tag-cur" wx:if="{{item.cur}}">当前</text>
+          </view>
+          <view class="space-sub">{{item.count}} 场战绩 · 邀请码 {{item.inviteCode}}</view>
+        </view>
+        <view class="space-right">
+          <view
+            wx:if="{{!item.isDef}}"
+            class="sp-def"
+            data-id="{{item._id}}"
+            catchtap="setDefaultSpace"
+          >设为默认</view>
+          <view wx:else class="space-check">{{item.cur ? '✓' : ''}}</view>
+        </view>
+      </view>
+      <view wx:if="{{spaceOptions.length === 0}}" class="space-empty">还没有空间，先创建一个吧</view>
+    </scroll-view>
+    <button class="btn-primary full-width" bindtap="goJoin">＋ 创建新空间 / 加入空间</button>
+    <button class="sheet-close cancel-btn" bindtap="closeSpaceSheet">取消</button>
+  </view>
+
+  <!-- 类型弹层 -->
+  <view wx:if="{{typeSheet}}" class="mask" bindtap="closeTypeSheet"></view>
+  <view wx:if="{{typeSheet}}" class="sheet">
+    <view class="sheet-title">选择比赛类型</view>
+    <view class="type-grid">
+      <view
+        wx:for="{{typeOptions}}"
+        wx:key="key"
+        class="type-item {{type === item.key ? 'on' : ''}}"
+        data-type="{{item.key}}"
+        bindtap="pickType"
+      >
+        <view class="type-emoji">{{item.emoji}}</view>
+        <view class="type-name">{{item.key}}</view>
+      </view>
+    </view>
+    <button class="sheet-close" bindtap="closeTypeSheet">取消</button>
+  </view>
+
+  <!-- 时间弹层 -->
+  <view wx:if="{{timeSheet}}" class="mask" bindtap="closeTimeSheet"></view>
+  <view wx:if="{{timeSheet}}" class="sheet">
+    <view class="sheet-title">比赛时间</view>
+    <view class="time-row">
+      <picker mode="date" value="{{dateVal}}" bindchange="onDateChange">
+        <view class="time-pick">
+          <text class="time-label">日期</text>
+          <text class="time-val">{{dateVal}}</text>
+        </view>
+      </picker>
+      <view class="time-sep">·</view>
+      <picker mode="time" value="{{timeVal}}" bindchange="onTimeChange">
+        <view class="time-pick">
+          <text class="time-label">时间</text>
+          <text class="time-val">{{timeVal}}</text>
+        </view>
+      </picker>
+    </view>
+    <button class="btn-ghost green" bindtap="useNow">🕐 使用当前时间</button>
+    <button class="btn-primary" bindtap="confirmTime">确定</button>
+  </view>
+
+</view>

@@ -1,0 +1,135 @@
+<view class="page">
+
+  <!-- 顶部左上角：当前对战下拉筛选（有空间才显示，但 hero 占位始终保留，防止卡片上移） -->
+  <view class="hero">
+    <view class="hero-drop" wx:if="{{hasSpace}}" bindtap="openSpaceSheet">
+      <text class="hd-name">{{me}}</text>
+      <text class="hd-vs">VS</text>
+      <text class="hd-name">{{friend}}</text>
+      <text class="caret">▾</text>
+    </view>
+  </view>
+
+  <!-- 无空间：空状态引导 -->
+  <view wx:if="{{!hasSpace}}" class="card empty-card">
+    <view class="big">🏟️</view>
+    <view class="empty-txt">还没有比赛空间</view>
+    <view class="empty-sub">创建一个空间，或输入朋友分享的邀请码，两个人就能看到同一份战绩</view>
+    <button class="btn-primary" bindtap="goJoin">创建 / 加入空间</button>
+  </view>
+
+  <block wx:else>
+    <!-- 双人 VS 卡 -->
+    <view class="card vs-card">
+      <view class="vs-col">
+        <view class="avatar">{{meAvatar}}</view>
+        <view class="vs-name">{{me}}</view>
+      </view>
+      <view class="vs-mid">
+        <view class="vs-word">VS</view>
+        <view class="vs-ball">🎱</view>
+      </view>
+      <view class="vs-col">
+        <view class="avatar">{{frAvatar}}</view>
+        <view class="vs-name">{{friend}}</view>
+      </view>
+    </view>
+
+    <!-- 最近战绩 -->
+    <view class="card">
+      <view class="card-title">
+        <text>最近战绩</text>
+        <text class="lead">{{leadText}}</text>
+      </view>
+      <view class="rec-bar">
+        <view class="rec-line">
+          <text class="rec-name">{{me}}</text>
+          <text class="rec-win">{{mWin}} 胜</text>
+          <text class="rec-sep">·</text>
+          <text class="rec-win">{{fWin}} 胜</text>
+          <text class="rec-name right">{{friend}}</text>
+        </view>
+        <view class="rate-track">
+          <view class="rate-fill" style="width: {{mRate}}%;"></view>
+        </view>
+        <view class="rec-total">最近 {{total}} 场</view>
+      </view>
+    </view>
+
+    <!-- 主按钮 -->
+    <button class="btn-primary big-btn" bindtap="goRecord">＋ 记录一场</button>
+
+    <!-- 最近比赛 -->
+    <view class="card">
+      <view class="card-title">
+        <text>最近比赛</text>
+        <text class="link" bindtap="goStats">查看统计 ›</text>
+      </view>
+
+      <view wx:if="{{recent.length === 0}}" class="empty">
+        <view class="big">🎱</view>
+        还没有比赛，点上面的按钮记一场吧
+      </view>
+
+      <view
+        wx:for="{{recent}}"
+        wx:key="_id"
+        class="rec-item"
+        data-id="{{item._id}}"
+        bindtap="goDetail"
+      >
+        <view class="rec-emoji">{{item.emoji}}</view>
+        <view class="rec-main">
+          <view class="rec-score">
+            <text class="rec-me">{{item.meName}}</text>
+            <text class="rec-num">{{item.a}} : {{item.b}}</text>
+            <text class="rec-fr">{{item.friendName}}</text>
+          </view>
+          <view class="rec-meta">
+            <text>{{item.timeText}}</text>
+            <text wx:if="{{item.loc}}"> · {{item.loc}}</text>
+          </view>
+        </view>
+        <view class="badge {{item.winClass}}">{{item.winnerText}}</view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 选择朋友弹层 -->
+  <view wx:if="{{spaceSheet}}" class="mask" bindtap="closeSpaceSheet"></view>
+  <view wx:if="{{spaceSheet}}" class="sheet">
+    <view class="sheet-title">选择朋友</view>
+    <scroll-view class="space-scroll" scroll-y>
+      <view
+        wx:for="{{spaces}}"
+        wx:key="_id"
+        class="space-item {{item.cur ? 'on' : ''}}"
+        data-id="{{item._id}}"
+        bindtap="pickSpace"
+      >
+        <view class="space-avatar">{{item.emoji}}</view>
+        <view class="space-main">
+          <view class="space-name">
+            {{item.name}}
+            <text class="tag-def" wx:if="{{item.isDef}}">默认</text>
+            <text class="tag-cur" wx:if="{{item.cur}}">当前</text>
+          </view>
+          <view class="space-sub">{{item.count}} 场战绩 · 邀请码 {{item.inviteCode}}</view>
+        </view>
+        <view class="space-right">
+          <view
+            wx:if="{{!item.isDef}}"
+            class="sp-def"
+            data-id="{{item._id}}"
+            catchtap="setDefaultSpace"
+          >设为默认</view>
+          <view wx:else class="space-check">{{item.cur ? '✓' : ''}}</view>
+        </view>
+      </view>
+      <view wx:if="{{spaces.length === 0}}" class="space-empty">还没有空间，先创建一个吧</view>
+    </scroll-view>
+    <button class="btn-primary full-width" bindtap="goJoin">＋ 创建新空间 / 加入空间</button>
+    <button class="sheet-close cancel-btn" bindtap="closeSpaceSheet">取消</button>
+  </view>
+
+</view>

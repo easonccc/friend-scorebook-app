@@ -1,0 +1,132 @@
+<view class="page">
+
+  <view class="subhead">
+    <view class="sub-title">设置</view>
+  </view>
+
+  <!-- 无空间 -->
+  <view wx:if="{{!hasSpace}}" class="card empty" style="padding: 60rpx 40rpx">
+    <view class="big">🏟️</view>
+    <view>还没有比赛空间</view>
+    <view class="empty-sub">先创建一个空间，或加入朋友的</view>
+    <button class="btn-primary" style="margin-top: 32rpx;" bindtap="goJoin">创建 / 加入空间</button>
+  </view>
+
+  <block wx:else >
+    <!-- 人物（当前空间，真实头像/昵称来自 users 表，改名走「我的资料」） -->
+    <view class="card" style="margin-top: 28rpx;">
+      <view class="card-title">人物 · 当前空间</view>
+      <view class="name-row">
+        <text class="name-label">{{meAvatar}} 我</text>
+        <text class="name-value">{{meName}}</text>
+      </view>
+      <view class="name-row">
+        <text class="name-label">{{frAvatar}} 朋友</text>
+        <text class="name-value">{{friendName}}</text>
+      </view>
+      <button class="btn-ghost" bindtap="goProfile">✎ 修改我的头像 / 名字</button>
+      <view class="name-tip">自己的资料在「我的资料」改；朋友的名字由朋友自己改</view>
+    </view>
+
+    <!-- 默认比赛类型（存云端，新开记录默认用它） -->
+    <view class="card">
+      <view class="card-title">默认比赛类型</view>
+      <view class="def-row" bindtap="openTypeSheet">
+        <view class="def-ava">{{defaultTypeEmoji}}</view>
+        <view class="def-main">
+          <view class="def-name">{{defaultType}}</view>
+          <view class="def-sub">新开记录默认用这个类型</view>
+        </view>
+        <view class="def-arrow">›</view>
+      </view>
+    </view>
+
+    <!-- 我的比赛空间 -->
+    <view class="card">
+      <view class="card-title">我的比赛空间</view>
+      <view wx:if="{{spaceItems.length === 0}}" class="empty">还没有比赛空间</view>
+      <view
+        wx:for="{{spaceItems}}"
+        wx:key="id"
+        class="space-row {{item.cur ? 'on' : ''}}"
+        data-id="{{item.id}}"
+        bindtap="pickSpace"
+      >
+        <view class="sr-ava {{item.cur ? 'ava-me' : 'ava-fr'}}">{{item.meAvatar}}</view>
+        <view class="sr-mid">
+          <view class="sr-name">
+            {{item.name}}
+            <text class="tag tag-def" wx:if="{{item.isDef}}">默认</text>
+            <text class="tag" wx:if="{{item.cur}}">当前</text>
+          </view>
+          <view class="sr-sub">{{item.sub}}</view>
+        </view>
+        <view
+          wx:if="{{!item.isDef}}"
+          class="sr-def"
+          data-id="{{item.id}}"
+          catchtap="setDefaultSpace"
+        >设为默认</view>
+        <view class="sr-check">{{item.cur ? '✓' : '›'}}</view>
+      </view>
+    </view>
+
+    <!-- 空间操作 -->
+    <view class="card">
+      <view class="card-title">邀请朋友</view>
+      <view class="sp-row">
+        <text class="sp-label">当前邀请码</text>
+        <view class="sp-code-row">
+          <text class="sp-code">{{inviteCode || '——'}}</text>
+          <view class="sp-copy" bindtap="copyCode">复制</view>
+        </view>
+      </view>
+      <button class="btn-ghost" open-type="share">📤 分享给朋友加入</button>
+      <button class="btn-ghost" bindtap="goJoin" style="margin-top: 28rpx;">创建 / 加入其他空间</button>
+    </view>
+
+    <!-- 账号（我的资料 / 管理员入口） -->
+    <view class="card">
+      <view class="card-title">账号</view>
+      <view class="acc-row" bindtap="goProfile">
+        <text class="acc-label">{{avatarEmoji}} 我的资料</text>
+        <text class="acc-sub">{{nickname}}</text>
+        <text class="acc-arrow">›</text>
+      </view>
+      <view wx:if="{{isAdmin}}" class="acc-row" bindtap="goUserList">
+        <text class="acc-label">👥 用户管理</text>
+        <text class="acc-sub">管理员</text>
+        <text class="acc-arrow">›</text>
+      </view>
+    </view>
+
+    <!-- 关于 -->
+    <view class="card about">
+      <view class="about-line">🎱 来VS</view>
+      <view class="about-sub">朋友之间的比赛小账本 · v1.7</view>
+      <view class="about-sub">数据存在微信云开发，双方实时同步</view>
+    </view>
+  </block>
+
+  <!-- 默认比赛类型弹层（内置 + 我的自定义类型，按用户隔离） -->
+  <view wx:if="{{typeSheet}}" class="mask" bindtap="closeTypeSheet"></view>
+  <view wx:if="{{typeSheet}}" class="sheet">
+    <view class="sheet-title">选择默认比赛类型</view>
+    <scroll-view scroll-y class="type-scroll">
+      <view class="type-grid">
+        <view
+          wx:for="{{typeOptions}}"
+          wx:key="key"
+          class="type-item {{defaultType === item.key ? 'on' : ''}}"
+          data-type="{{item.key}}"
+          bindtap="pickDefaultType"
+        >
+          <view class="type-emoji">{{item.emoji}}</view>
+          <view class="type-name">{{item.key}}</view>
+        </view>
+      </view>
+    </scroll-view>
+    <button class="sheet-close" bindtap="closeTypeSheet">取消</button>
+  </view>
+
+</view>

@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# 微信开发者工具
+project.private.config.json
+.idea/
+.vscode/
+*.swp
+
+# 依赖
+node_modules/
+miniprogram_npm/
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 日志 & 临时
+npm-debug.log*
+yarn-error.log*
+*.log
+.tmp/
+tmp/
+dist/
+build/
+
+# 环境变量 / 密钥
+.env
+.env.*
+*.pem
+*.key

@@ -1,0 +1,69 @@
+<view class="page">
+
+  <view class="subhead">
+    <view class="back" bindtap="goBack">‹</view>
+    <view class="sub-title">比赛详情</view>
+  </view>
+
+  <!-- 记录被删除等异常情况 -->
+  <view wx:if="{{!exists}}" class="card empty">
+    <view class="big">🔍</view>
+    这场比赛不存在或已被删除
+  </view>
+
+  <block wx:else>
+    <!-- 类型头卡 -->
+    <view class="card type-head">
+      <view class="type-emoji">{{rec.emoji}}</view>
+      <view class="type-name">{{rec.type}}</view>
+      <view class="badge {{rec.winClass}}">{{rec.winnerText}}</view>
+    </view>
+
+    <!-- 大比分 -->
+    <view class="card score-big">
+      <view class="sb-col">
+        <view class="sb-name">{{meName}}</view>
+        <view class="sb-num">{{rec.a}}</view>
+      </view>
+      <view class="sb-colon">:</view>
+      <view class="sb-col">
+        <view class="sb-name">{{friendName}}</view>
+        <view class="sb-num">{{rec.b}}</view>
+      </view>
+    </view>
+
+    <!-- 完整信息 -->
+    <view class="card detail-info">
+      <view class="di-row">
+        <text class="di-label">🕐 时间</text>
+        <text class="di-value">{{rec.timeText}}</text>
+      </view>
+      <view class="di-row" wx:if="{{rec.loc}}">
+        <text class="di-label">📍 地点</text>
+        <text class="di-value">{{rec.loc}}</text>
+      </view>
+      <view class="di-row">
+        <text class="di-label">🎯 总局数</text>
+        <text class="di-value">{{rec.total}} 局</text>
+      </view>
+      <view class="di-row" wx:if="{{rec.durationText}}">
+        <text class="di-label">⏱ 时长</text>
+        <text class="di-value">{{rec.durationText}}</text>
+      </view>
+    </view>
+
+    <!-- 操作 -->
+    <button class="btn-ghost edit-btn" bindtap="goEdit">✎ 编辑这场比赛</button>
+    <button class="btn-danger" bindtap="openDelete" style="display: flex;align-items: center;justify-content: center;">删除这场比赛</button>
+  </block>
+
+  <!-- 删除确认 -->
+  <view wx:if="{{showDeleteSheet}}" class="mask" bindtap="closeDelete"></view>
+  <view wx:if="{{showDeleteSheet}}" class="sheet">
+    <view class="sheet-title">删除这场比赛？</view>
+    <view class="confirm-text">删除后双方都看不到这场比赛，且无法恢复</view>
+    <button class="btn-danger" bindtap="confirmDelete" disabled="{{deleting}}" style="display: flex;align-items: center;justify-content: center;">确认删除</button>
+    <button class="btn-ghost" bindtap="closeDelete">再想想</button>
+  </view>
+
+</view>

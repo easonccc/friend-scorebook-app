@@ -1,0 +1,36 @@
+<view class="page">
+
+  <view class="subhead">
+    <view class="back" bindtap="goBack">‹</view>
+    <view class="sub-title">用户管理</view>
+  </view>
+
+  <view class="card" style="margin-top: 28rpx;">
+    <view class="card-title">
+      <text>全部用户</text>
+      <text class="count">共 {{list.length}} 人</text>
+    </view>
+
+    <view wx:if="{{loading}}" class="empty">加载中…</view>
+    <view wx:elif="{{list.length === 0}}" class="empty">暂无用户</view>
+
+    <view
+      wx:for="{{list}}"
+      wx:key="_id"
+      class="user-row"
+    >
+      <view class="u-avatar">{{item.emoji}}</view>
+      <view class="u-main">
+        <view class="u-name">
+          {{item.nickname || '我'}}
+          <text class="tag tag-me" wx:if="{{item.isMe}}">我自己</text>
+          <text class="tag tag-admin" wx:if="{{item.role === 'admin'}}">管理员</text>
+        </view>
+        <view class="u-sub">openid 尾号 {{item.openidTail}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="tip">仅管理员可查看。普通用户看不到此入口。</view>
+
+</view>

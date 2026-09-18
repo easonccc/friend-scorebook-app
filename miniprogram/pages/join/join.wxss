@@ -1,0 +1,47 @@
+/* pages/join/join.wxss */
+
+.intro {
+  font-size: 25rpx;
+  color: var(--ink2);
+  line-height: 1.9;
+  padding: 12rpx 8rpx 32rpx;
+}
+
+.join-input {
+  height: 88rpx;
+  background: var(--lose);
+  border-radius: 18rpx;
+  padding: 0 28rpx;
+  font-size: 28rpx;
+  margin-bottom: 28rpx;
+}
+.code-input {
+  text-align: center;
+  font-size: 36rpx;
+  font-weight: 800;
+  letter-spacing: 12rpx;
+}
+.ph { color: #C4BFAF; font-weight: 400; letter-spacing: 0; }
+.join-tip {
+  font-size: 22rpx;
+  color: var(--green-d);
+  text-align: center;
+  line-height: 1.7;
+  margin: 20rpx 0;
+}
+
+/* 创建 / 加入 之间的分隔 */
+.join-or {
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+  margin: 4rpx 0 24rpx;
+  color: var(--ink2);
+  font-size: 24rpx;
+  font-weight: 600;
+}
+.join-or .line {
+  flex: 1;
+  height: 2rpx;
+  background: var(--line);
+}

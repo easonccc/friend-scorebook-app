@@ -1,0 +1,173 @@
+<view class="page">
+
+  <view class="subhead">
+    <view class="sub-title">统计</view>
+    <view class="sub-desc">{{leadText}}</view>
+  </view>
+
+  <!-- 无空间 -->
+  <view wx:if="{{!hasSpace}}" class="card empty" style="padding: 60rpx 40rpx;">
+    <view class="big">📊</view>
+    <view>还没有比赛空间</view>
+    <button class="btn-primary" style="margin-top: 32rpx;" bindtap="goJoin">创建 / 加入空间</button>
+  </view>
+
+  <block wx:else>
+    <!-- 朋友筛选（横向滚动，一行搞定，保持页面轻量） -->
+    <scroll-view class="filter-scroll friend" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="filter-row">
+        <view
+          wx:for="{{friendFilters}}"
+          wx:key="id"
+          class="filter-chip {{friendFilter === item.id ? 'on' : ''}}"
+          data-id="{{item.id}}"
+          bindtap="pickFriendFilter"
+        >{{item.name}}</view>
+      </view>
+    </scroll-view>
+
+    <!-- 类型筛选（横向滚动） -->
+    <scroll-view class="filter-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+      <view class="filter-row">
+        <view
+          wx:for="{{filters}}"
+          wx:key="*this"
+          class="filter-chip {{filter === item ? 'on' : ''}}"
+          data-f="{{item}}"
+          bindtap="pickFilter"
+        >{{item}}</view>
+      </view>
+    </scroll-view>
+
+    <!-- 总战绩 -->
+    <view class="card">
+      <view class="card-title">总战绩</view>
+      <view class="big-row">
+        <view class="big-item">
+          <view class="big-num">{{n}}</view>
+          <view class="big-label">总场次</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num me">{{m}}</view>
+          <view class="big-label">{{meName}} 胜</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num fr">{{f}}</view>
+          <view class="big-label">{{friendName}} 胜</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num dr">{{d}}</view>
+          <view class="big-label">平局</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 胜率 -->
+    <view class="card">
+      <view class="card-title">胜率</view>
+      <view class="rate-line">
+        <text class="rate-name">{{meName}}</text>
+        <view class="rate-track">
+          <view class="rate-fill me" style="width: {{mRate}}%;"></view>
+        </view>
+        <text class="rate-num">{{mRate}}%</text>
+      </view>
+      <view class="rate-line">
+        <text class="rate-name">{{friendName}}</text>
+        <view class="rate-track">
+          <view class="rate-fill fr" style="width: {{fRate}}%;"></view>
+        </view>
+        <text class="rate-num">{{fRate}}%</text>
+      </view>
+      <view class="rate-draw" wx:if="{{d > 0}}">平局占比 {{dRate}}%</view>
+    </view>
+
+    <!-- 最近战绩 -->
+    <view class="card">
+      <view class="card-title">
+        <text>最近 10 场</text>
+        <text class="recent-text">{{meName}} {{rM}} 胜 · {{friendName}} {{rF}} 胜</text>
+      </view>
+      <view class="trend" wx:if="{{trend.length}}">
+        <view
+          wx:for="{{trend}}"
+          wx:key="i"
+          class="dot {{item.cls}}"
+        ></view>
+      </view>
+      <view class="empty" wx:else>还没有比赛</view>
+    </view>
+
+    <!-- 比分统计 -->
+    <view class="card">
+      <view class="card-title">比分统计</view>
+      <view class="big-row">
+        <view class="big-item">
+          <view class="big-num">{{myPts}}</view>
+          <view class="big-label">{{meName}} 总得分</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num">{{frPts}}</view>
+          <view class="big-label">{{friendName}} 总得分</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num">{{myAvg}}</view>
+          <view class="big-label">每场平均</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num">{{frAvg}}</view>
+          <view class="big-label">每场平均</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 比赛类型明细 -->
+    <view class="card">
+      <view class="card-title">比赛类型</view>
+      <view wx:if="{{types.length === 0}}" class="empty">暂无数据</view>
+      <view wx:for="{{types}}" wx:key="type" class="type-row">
+        <view class="type-emoji">{{item.emoji}}</view>
+        <view class="type-main">
+          <view class="type-name">{{item.type}} · {{item.n}} 场</view>
+          <view class="type-track">
+            <view class="type-fill" style="width: {{item.mRate}}%;"></view>
+          </view>
+        </view>
+        <view class="type-rate">{{item.rateText}}</view>
+      </view>
+    </view>
+
+    <!-- 每次比赛（点击进详情） -->
+    <view class="card">
+      <view class="card-title">
+        <text>每次比赛</text>
+        <text class="recent-text" wx:if="{{matchList.length}}">共 {{n}} 场，点按查看详情</text>
+      </view>
+      <view wx:if="{{matchList.length === 0}}" class="empty">还没有比赛</view>
+      <view
+        wx:for="{{matchList}}"
+        wx:key="_id"
+        class="match-row"
+        data-id="{{item._id}}"
+        data-sid="{{item.sid}}"
+        bindtap="goDetail"
+      >
+        <view class="match-emoji">{{item.emoji}}</view>
+        <view class="match-main">
+          <view class="match-score">
+            <text class="score-a">{{item.a}}</text>
+            <text class="score-x">:</text>
+            <text class="score-b">{{item.b}}</text>
+            <text class="match-fr">{{item.friendName}}</text>
+          </view>
+          <view class="match-sub">{{item.type}} · {{item.timeText}}</view>
+        </view>
+        <view class="match-right">
+          <view class="badge {{item.cls}}">{{item.winText}}</view>
+          <view class="match-arrow">›</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+</view>

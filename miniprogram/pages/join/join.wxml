@@ -1,0 +1,49 @@
+<view class="page">
+
+  <view class="subhead">
+    <view class="back" bindtap="goBack">‹</view>
+    <view class="sub-title">比赛空间</view>
+  </view>
+
+  <view class="intro">
+    两个人共用一个空间，就能看到同一份比赛记录和统计。创建后把邀请码发给朋友即可。
+  </view>
+
+  <!-- 创建 -->
+  <view class="card">
+    <view class="card-title">创建空间 · 新朋友</view>
+    <input
+      class="join-input"
+      value="{{friendName}}"
+      placeholder="给朋友起个名字"
+      placeholder-class="ph"
+      maxlength="8"
+      bindinput="onNameInput"
+    />
+    <view class="join-tip">我的名字沿用「{{meName}}」，之后可在设置里修改</view>
+    <button class="btn-primary" bindtap="onCreate" disabled="{{creating}}">创建空间</button>
+  </view>
+
+  <!-- 分隔 -->
+  <view class="join-or">
+    <view class="line"></view>
+    <text>或</text>
+    <view class="line"></view>
+  </view>
+
+  <!-- 加入 -->
+  <view class="card">
+    <view class="card-title">加入朋友的</view>
+    <input
+      class="join-input code-input"
+      value="{{code}}"
+      placeholder="输入 6 位邀请码"
+      placeholder-class="ph"
+      maxlength="6"
+      bindinput="onCodeInput"
+    />
+    <button class="btn-ghost" bindtap="onJoin" disabled="{{joining}}">加入空间</button>
+    <view class="join-tip" wx:if="{{code}}">已识别分享卡片中的邀请码，直接点「加入空间」即可</view>
+  </view>
+
+</view>
