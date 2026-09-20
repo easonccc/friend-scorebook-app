@@ -8,6 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Map;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -64,5 +65,16 @@ public class UserController {
         }
         List<User> users = userService.listAll();
         return Result.ok("list", users);
+    }
+
+    /**
+     * 批量查用户公开资料（openid / nickname / avatar）。
+     * 用于空间列表、比赛记录显示双方昵称与头像；前端传 openids 数组。
+     */
+    @PostMapping("/members")
+    public Result members(@RequestBody Map<String, Object> body) {
+        Object o = body.get("openids");
+        List<String> openids = (o instanceof List) ? (List<String>) o : List.of();
+        return Result.ok("list", userService.getMembers(openids));
     }
 }

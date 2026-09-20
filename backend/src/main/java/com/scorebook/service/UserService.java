@@ -6,7 +6,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 用户业务逻辑。
@@ -84,5 +86,26 @@ public class UserService {
         return Arrays.stream(adminOpenids.split(","))
                 .map(String::trim)
                 .anyMatch(openid::equals);
+    }
+
+    /**
+     * 批量查用户的公开资料（openid / nickname / avatar），用于空间列表、比赛记录里显示双方真实昵称与头像。
+     * 只返回公开字段，不返 role 等敏感信息。未注册过的 openid 不会出现（前端用空间里存的名字兜底）。
+     */
+    public List<Map<String, String>> getMembers(List<String> openids) {
+        if (openids == null || openids.isEmpty()) {
+            return List.of();
+        }
+        final List<String> want = openids;
+        return repo.findAll().stream()
+                .filter(u -> want.contains(u.getOpenid()))
+                .map(u -> {
+                    Map<String, String> m = new HashMap<>();
+                    m.put("openid", u.getOpenid());
+                    m.put("nickname", u.getNickname() == null ? "我" : u.getNickname());
+                    m.put("avatar", u.getAvatar() == null ? "avatar_01" : u.getAvatar());
+                    return m;
+                })
+                .toList();
     }
 }
