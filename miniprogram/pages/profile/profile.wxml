@@ -32,6 +32,7 @@
     <view class="card-title">昵称</view>
     <!-- type="nickname" 是微信官方能力：聚焦后点「使用微信昵称」即可一键把真实微信昵称带上来 -->
     <input
+      id="nickname-input"
       class="name-input"
       type="nickname"
       value="{{nickname}}"
@@ -40,6 +41,7 @@
       maxlength="32"
       bindinput="onNameInput"
       bindnickname="onNickname"
+      bindblur="onNicknameBlur"
     />
     <view class="name-tip">点输入框 → 选「使用微信昵称」即可自动填入；也可手动改。最多 32 字</view>
     <button class="btn-primary" bindtap="save" disabled="{{saving}}">保存</button>

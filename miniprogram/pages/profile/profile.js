@@ -39,10 +39,31 @@ Page({
 
   onNameInput(e) { this.setData({ nickname: e.detail.value }) },
 
-  // 微信昵称一键填入（input type=nickname 的官方回调，自动带出真实微信昵称）
+  // 微信昵称一键填入（input type=nickname 官方回调）。
+  // 坑：微信在受控 input 上「使用微信昵称」回填的昵称【不会可靠同步】到 setData 变量
+  // （开发者工具/部分机型 e.detail.nickname 为空），这里只做显示兜底，
+  // 真正可靠的值以 save 时从 input 真实读取为准（见 readInputValue）。
   onNickname(e) {
     const n = (e.detail && e.detail.nickname) || ''
     if (n) this.setData({ nickname: n })
+  },
+
+  // 失焦兜底：从 input 真实 DOM 读当前值，覆盖受控不同步导致的旧值
+  onNicknameBlur() {
+    this.readInputValue('#nickname-input').then(v => { if (v) this.setData({ nickname: v }) })
+  },
+
+  // 用 createSelectorQuery 读取 input 当前真实值（兼容 bindnickname 受控不同步问题）
+  readInputValue(id) {
+    return new Promise((resolve) => {
+      wx.createSelectorQuery().in(this)
+        .select(id)
+        .fields({ properties: ['value'] })
+        .exec((res) => {
+          const v = (res && res[0] && res[0].value) || ''
+          resolve(v)
+        })
+    })
   },
 
   pickAvatar(e) {
@@ -52,10 +73,20 @@ Page({
 
   async save() {
     if (this.data.saving) return
-    const nickname = (this.data.nickname || '').trim().slice(0, 8) || '我'
-    this.setData({ saving: true })
+    // 关键修复：从 input 真实读取最新值，避免 bindnickname 受控不同步导致传旧值（"传参没变"的根因）
+    const real = await this.readInputValue('#nickname-input')
+    const nickname = (real || this.data.nickname || '').trim()
+    if (!nickname) {
+      wx.showToast({ title: '昵称不能为空', icon: 'none' })
+      return
+    }
+    if (nickname.length > 32) {
+      wx.showToast({ title: '昵称最多 32 字', icon: 'none' })
+      return
+    }
+    this.setData({ saving: true, nickname })
     try {
-      // 只传 nickname + avatar，role 不可改（云函数也不接受）
+      // 只传 nickname + avatar，role 不可改（后端也不接受，防越权）
       const r = await userService.updateProfile({ nickname, avatar: this.data.avatar })
       // 同步全局态
       if (app.globalData.user) {

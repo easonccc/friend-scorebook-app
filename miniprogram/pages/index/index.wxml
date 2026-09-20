@@ -132,36 +132,4 @@
     <button class="sheet-close cancel-btn" bindtap="closeSpaceSheet">取消</button>
   </view>
 
-  <!-- 首次设置昵称引导：无昵称时强制弹出，遮罩不可关闭 -->
-  <view wx:if="{{onboarding}}" class="mask" catchtap="noop"></view>
-  <view wx:if="{{onboarding}}" class="sheet ob-sheet">
-    <view class="ob-title">先设置你的昵称</view>
-    <view class="ob-sub">朋友在战绩里会看到这个名字</view>
-
-    <!-- 微信昵称一键填入：聚焦后点「使用微信昵称」即可带入真实昵称 -->
-    <input
-      class="name-input"
-      type="nickname"
-      value="{{obNickname}}"
-      placeholder="点这里可一键填入微信昵称"
-      placeholder-class="ph"
-      maxlength="32"
-      bindinput="obOnNameInput"
-      bindnickname="obOnNickname"
-    />
-    <view class="name-tip">点输入框 → 选「使用微信昵称」即可自动填入；也可手动改</view>
-
-    <view class="avatar-grid">
-      <view
-        wx:for="{{obAvatarList}}"
-        wx:key="key"
-        class="avatar-item {{obAvatar === item.key ? 'on' : ''}}"
-        data-key="{{item.key}}"
-        bindtap="obPickAvatar"
-      >{{item.emoji}}</view>
-    </view>
-
-    <button class="btn-primary ob-save" bindtap="obSave" disabled="{{obSaving}}">保存并进入</button>
-  </view>
-
 </view>

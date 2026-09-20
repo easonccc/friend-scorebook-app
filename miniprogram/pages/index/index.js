@@ -3,8 +3,6 @@ const app = getApp()
 const db = require('../../utils/db')
 const stats = require('../../utils/stats')
 const util = require('../../utils/util')
-const config = require('../../utils/config')
-const userService = require('../../services/user')
 
 Page({
   data: {
@@ -25,14 +23,7 @@ Page({
     mRate: 0,
     leadText: '',
     // 最近比赛列表
-    recent: [],
-    // 首次设置昵称引导（无昵称时强制弹出，不可关闭）
-    onboarding: false,
-    obNickname: '',
-    obAvatar: 'avatar_01',
-    obAvatarEmoji: '🐼',
-    obAvatarList: [],
-    obSaving: false
+    recent: []
   },
 
   onShow() {
@@ -41,8 +32,6 @@ Page({
       this.getTabBar().setData({ selected: 0, hidden: false, spaceOn: !!app.globalData.space })
     }
     this.refresh()
-    // 无昵称用户强制引导设置一次（微信不下发昵称，须用户点输入框一键填入）
-    this.checkOnboarding()
   },
 
   // 弹框打开/关闭时隐藏/恢复自定义 TabBar（防止框架级图层盖住底部抽屉）
@@ -230,74 +219,5 @@ Page({
 
   goStats() {
     wx.switchTab({ url: '/pages/stats/stats' })
-  },
-
-  /* ---------------- 首次设置昵称引导 ---------------- */
-  // 头像 key → emoji（与个人页同款）
-  obEmojiOf(key) {
-    const hit = (config.AVATARS || []).find(a => a.key === key)
-    return hit ? hit.emoji : '🐼'
-  },
-
-  // 检查当前用户是否已设置昵称；未设置则弹出强制引导
-  async checkOnboarding() {
-    try {
-      const r = await userService.get()
-      const u = (r && r.user) || {}
-      // 同步到全局态，供其它页面/组件使用
-      if (app.globalData.user) Object.assign(app.globalData.user, u)
-      else app.globalData.user = u
-      if (!u.nickname) {
-        this.setData({
-          onboarding: true,
-          obNickname: '',
-          obAvatar: 'avatar_01',
-          obAvatarEmoji: this.obEmojiOf('avatar_01'),
-          obAvatarList: config.AVATARS || [],
-          obSaving: false
-        })
-      }
-    } catch (e) {
-      // 登录/网络异常时静默跳过，不阻断使用（用户可在个人页稍后设置）
-      console.warn('[onboarding] 检查用户资料失败:', e.errMsg || e.message || e)
-    }
-  },
-
-  obOnNameInput(e) { this.setData({ obNickname: e.detail.value }) },
-
-  // 微信昵称一键填入（input type=nickname 官方回调）
-  obOnNickname(e) {
-    const n = (e.detail && e.detail.nickname) || ''
-    if (n) this.setData({ obNickname: n })
-  },
-
-  obPickAvatar(e) {
-    const key = e.currentTarget.dataset.key
-    this.setData({ obAvatar: key, obAvatarEmoji: this.obEmojiOf(key) })
-  },
-
-  // 保存昵称+头像，成功后关闭引导并刷新首页显示
-  async obSave() {
-    if (this.data.obSaving) return
-    const nickname = (this.data.obNickname || '').trim()
-    if (!nickname) {
-      wx.showToast({ title: '先填个昵称吧', icon: 'none' })
-      return
-    }
-    this.setData({ obSaving: true })
-    try {
-      await userService.updateProfile({ nickname, avatar: this.data.obAvatar })
-      if (app.globalData.user) {
-        app.globalData.user.nickname = nickname
-        app.globalData.user.avatar = this.data.obAvatar
-      }
-      this.setData({ onboarding: false })
-      this.refresh()
-      wx.showToast({ title: '设置成功', icon: 'success' })
-    } catch (e) {
-      wx.showToast({ title: e.message || '保存失败', icon: 'none', duration: 2500 })
-    } finally {
-      this.setData({ obSaving: false })
-    }
   }
 })

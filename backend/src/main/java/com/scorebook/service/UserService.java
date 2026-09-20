@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,21 +36,27 @@ public class UserService {
         this.repo = repo;
     }
 
-    /** 首次访问初始化用户：不存在才新建，已存在直接返回。角色由后端白名单判定。 */
+    /** 首次访问初始化用户：不存在才新建；已存在但昵称为空时兜底补一个可爱默认昵称（避免显示层 fallback「我/朋友」）。角色由后端白名单判定。 */
     public User initUser(String openid) {
-        return repo.findByOpenid(openid).orElseGet(() -> {
-            User u = new User();
-            u.setOpenid(openid);
-            // 昵称留空：微信在 wx.login 阶段不下发昵称（平台限制，getUserProfile 已废弃），
-            // 无法自动获取真实微信昵称。留空后由前端引导用户在「个人页」点输入框一键填入（input type=nickname）。
-            // 显示层对空昵称统一 fallback 成「我/朋友」，避免这里写死一个误导性的「微信用户」占位。
-            u.setNickname(null);
-            u.setAvatar("avatar_01");
-            u.setRole(isAdmin(openid) ? "admin" : "user");
-            u.setCreatedAt(LocalDateTime.now());
-            u.setUpdatedAt(LocalDateTime.now());
-            return repo.save(u);
+        User u = repo.findByOpenid(openid).orElseGet(() -> {
+            User nu = new User();
+            nu.setOpenid(openid);
+            // 默认生成可爱昵称：微信 wx.login 阶段不下发真实昵称（平台限制），
+            // 这里直接给一个随机萌系昵称，用户可在「个人页」点输入框一键填入微信昵称或手动改。
+            nu.setNickname(generateDefaultNickname());
+            nu.setAvatar("avatar_01");
+            nu.setRole(isAdmin(openid) ? "admin" : "user");
+            nu.setCreatedAt(LocalDateTime.now());
+            nu.setUpdatedAt(LocalDateTime.now());
+            return repo.save(nu);
         });
+        // 兜底：老用户（昵称空）补一个随机可爱昵称，登录即生效；不覆盖用户已设置的昵称
+        if (u.getNickname() == null || u.getNickname().isBlank()) {
+            u.setNickname(generateDefaultNickname());
+            u.setUpdatedAt(LocalDateTime.now());
+            u = repo.save(u);
+        }
+        return u;
     }
 
     public User getProfile(String openid) {
@@ -110,5 +117,17 @@ public class UserService {
                     return m;
                 })
                 .toList();
+    }
+
+    // ---- 默认昵称（萌系随机）----
+    private static final String[] CUTE_PREFIX = {"快乐","软萌","元气","呆萌","甜甜","酷酷","懒懒","萌萌","迷你","超萌","奶萌","幸福","星光"};
+    private static final String[] CUTE_SUFFIX = {"小熊猫","小兔","小老虎","小猫咪","小企鹅","小狐狸","小浣熊","小考拉","小海豚","星宝","奶糖","布丁","团子","云朵","泡芙"};
+
+    /** 生成默认可爱昵称：前缀 + 萌物后缀（如「快乐小熊猫」），长度均 < 32。 */
+    private String generateDefaultNickname() {
+        ThreadLocalRandom rnd = ThreadLocalRandom.current();
+        String p = CUTE_PREFIX[rnd.nextInt(CUTE_PREFIX.length)];
+        String s = CUTE_SUFFIX[rnd.nextInt(CUTE_SUFFIX.length)];
+        return p + s;
     }
 }
