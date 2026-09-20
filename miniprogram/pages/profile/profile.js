@@ -37,6 +37,12 @@ Page({
 
   onNameInput(e) { this.setData({ nickname: e.detail.value }) },
 
+  // 微信昵称一键填入（input type=nickname 的官方回调，自动带出真实微信昵称）
+  onNickname(e) {
+    const n = (e.detail && e.detail.nickname) || ''
+    if (n) this.setData({ nickname: n })
+  },
+
   pickAvatar(e) {
     const key = e.currentTarget.dataset.key
     this.setData({ avatar: key, avatarEmoji: this.emojiOf(key) })

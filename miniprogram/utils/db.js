@@ -78,17 +78,14 @@ function decodeTokenOpenid(token) {
 
 /* ---------- 用户身份 ---------- */
 let loginPromise = null
-// 登录并拿到 openid（先 wx.login 拿 code → 后端换 openid + 签发 token）。结果缓存，避免重复登录。
+// 登录并拿到 openid（先 wx.login 拿 code → 后端换 openid + 签发 token）。
+// 每次启动都真实走一遍 wx.login（不靠缓存短路），保证微信登录一定触发；失败用 Toast 显式提示，避免被静默吞掉。
 function ensureLogin() {
   if (loginPromise) return loginPromise
-  const cachedOpenid = wx.getStorageSync(KEY_OPENID)
-  const cachedToken = wx.getStorageSync(KEY_TOKEN)
-  if (cachedOpenid && cachedToken) {
-    loginPromise = Promise.resolve(cachedOpenid)
-    return loginPromise
-  }
   loginPromise = doLogin().catch(e => {
-    loginPromise = null // 失败允许重试
+    loginPromise = null // 失败允许下次重试
+    const msg = (e && e.message) || '登录失败'
+    wx.showToast({ title: msg, icon: 'none' })
     throw e
   })
   return loginPromise
