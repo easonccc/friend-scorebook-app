@@ -18,7 +18,9 @@ Page({
     userService.get().then(r => {
       const u = r.user || {}
       this.setData({
-        nickname: u.nickname || '我',
+        // 昵称为空时【留空】，让输入框显示「点这里可一键填入微信昵称」的引导，
+        // 而不是预填「我」——否则用户以为昵称已设置，不会去点框触发微信昵称填充
+        nickname: u.nickname || '',
         avatar: u.avatar || 'avatar_01',
         avatarEmoji: this.emojiOf(u.avatar),
         role: u.role || 'user'
