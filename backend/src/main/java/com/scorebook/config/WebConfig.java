@@ -45,6 +45,7 @@ public class WebConfig implements WebMvcConfigurer {
                 // 白名单：健康检查 + Swagger/OpenAPI 在线文档相关路径（即使将来开启鉴权，文档页也保持可访问）
                 .excludePathPatterns(
                         "/health",
+                        "/api/auth/**",           // 登录接口本身免鉴权（否则没法换 token）
                         "/swagger-ui.html",
                         "/swagger-ui/**",
                         "/v3/api-docs",
