@@ -1,11 +1,15 @@
-// utils/db.js - 数据层：云数据库 + 本地缓存 双写
+// utils/db.js - 数据层：Java 后端 REST 接口 + 本地缓存 双写
 //
 // 设计思路（为什么这样写）：
 // 1. 一切比赛记录都挂在「比赛空间」下，空间是共享数据的边界。
-// 2. 云数据库是唯一事实来源（true source），本地 wx.setStorageSync 只是缓存，
+// 2. 后端 MySQL 是唯一事实来源（true source），本地 wx.setStorageSync 只是缓存，
 //    保证打开 App 时秒开、离线也能看，网络恢复后再同步。
-// 3. 空间相关写操作（创建/加入/改名）走云函数，因为要生成唯一邀请码、
-//    做服务端校验；比赛记录的增删改直接走客户端数据库（配合安全规则控制权限）。
+// 3. 原云函数 / 云数据库调用，统一收敛到 apiRequest（wx.request + Bearer token），
+//    页面与其它模块的代码完全不用改，仍调用 ensureLogin / fetchUserSpaces / addRecord ...
+//
+// 字段归一化：后端主键是数据库自增 Long（JSON 里叫 id），而页面全部用字符串 _id
+// 做索引与 === 比较（原云开发的 _id 是字符串）。所以这里统一把 id 复制成字符串 _id，
+// 既保留 id 也补 _id，页面零改动即可工作。
 const config = require('./config')
 const stats = require('./stats')
 const util = require('./util')
@@ -13,44 +17,133 @@ const util = require('./util')
 const KEY_SPACE = 'currentSpace'
 const KEY_SPACES = 'mySpaces'          // 我参与的所有空间列表
 const KEY_OPENID = 'myOpenid'
+const KEY_TOKEN = 'myToken'            // 登录后后端签发的 token（Bearer）
 const keyRecords = spaceId => 'records:' + spaceId
 
-/* ---------- 云函数调用封装 ---------- */
-function callFn(name, data) {
-  return wx.cloud.callFunction({ name, data }).then(res => {
-    const r = res.result
-    if (r && r.ok === false) {
-      const err = new Error(r.msg || '操作失败')
-      err.code = r.code
-      throw err
-    }
-    return r
+/* ---------- 后端 REST 请求封装 ---------- */
+// method: GET/POST/PUT/DELETE；path: 以 / 开头的接口路径；body: 请求体（GET 用 query 拼在 path 上）
+// opts.skipAuth: true 时不上 token（仅登录接口用）
+// 约定：后端统一返回 { ok, code, msg, ...平铺字段 }，ok === false 或 HTTP 非 2xx 视为失败
+async function apiRequest(method, path, body, opts) {
+  opts = opts || {}
+  // 没 token 时自动先登录一次（拿 code 换 token），保证页面调用无需关心登录时机
+  if (!opts.skipAuth && !getToken()) {
+    try { await ensureLogin() } catch (e) { /* 下面会因无 token 被后端拒，正常走失败分支 */ }
+  }
+  return new Promise((resolve, reject) => {
+    const header = { 'content-type': 'application/json' }
+    const token = getToken()
+    if (token && !opts.skipAuth) header['Authorization'] = 'Bearer ' + token
+    wx.request({
+      url: config.API_BASE + path,
+      method,
+      data: body,
+      header,
+      success: res => {
+        const data = res.data
+        const success = res.statusCode >= 200 && res.statusCode < 300 && data && data.ok !== false
+        if (success) {
+          resolve(data)
+          return
+        }
+        const msg = (data && data.msg) || ('请求失败 (HTTP ' + res.statusCode + ')')
+        const err = new Error(msg)
+        err.code = (data && data.code) || ('HTTP_' + res.statusCode)
+        err.statusCode = res.statusCode
+        reject(err)
+      },
+      fail: err => reject(err)
+    })
   })
 }
 
-/* ---------- 用户身份 ---------- */
-let openidPromise = null
-// 取当前用户 openid（登录云函数），结果缓存，避免重复调用
-function ensureLogin() {
-  if (openidPromise) return openidPromise
-  const cached = wx.getStorageSync(KEY_OPENID)
-  if (cached) {
-    openidPromise = Promise.resolve(cached)
-    return openidPromise
+function getToken() {
+  return wx.getStorageSync(KEY_TOKEN) || ''
+}
+
+// 从 token 的 payload（base64url JSON，明文）里解出 openid，避免登录后再发一次请求。
+// 这是自家签发的 token，格式固定为 { openid, exp }，解码安全且零成本。
+function decodeTokenOpenid(token) {
+  try {
+    const p = String(token).split('.')[1]
+    if (!p) return ''
+    let b = p.replace(/-/g, '+').replace(/_/g, '/')
+    while (b.length % 4) b += '='
+    const json = JSON.parse(atob(b))
+    return json.openid || ''
+  } catch (e) {
+    return ''
   }
-  openidPromise = callFn('login').then(r => {
-    if (!r || !r.openid) throw new Error('未获取到 openid')
-    wx.setStorageSync(KEY_OPENID, r.openid)
-    return r.openid
-  }).catch(e => {
-    openidPromise = null // 失败允许重试
+}
+
+/* ---------- 用户身份 ---------- */
+let loginPromise = null
+// 登录并拿到 openid（先 wx.login 拿 code → 后端换 openid + 签发 token）。结果缓存，避免重复登录。
+function ensureLogin() {
+  if (loginPromise) return loginPromise
+  const cachedOpenid = wx.getStorageSync(KEY_OPENID)
+  const cachedToken = wx.getStorageSync(KEY_TOKEN)
+  if (cachedOpenid && cachedToken) {
+    loginPromise = Promise.resolve(cachedOpenid)
+    return loginPromise
+  }
+  loginPromise = doLogin().catch(e => {
+    loginPromise = null // 失败允许重试
     throw e
   })
-  return openidPromise
+  return loginPromise
+}
+
+function doLogin() {
+  return new Promise((resolve, reject) => {
+    wx.login({
+      success: res => {
+        if (!res.code) {
+          reject(new Error('wx.login 未返回 code'))
+          return
+        }
+        apiRequest('POST', '/api/auth/login', { code: res.code }, { skipAuth: true })
+          .then(data => {
+            const token = data && data.token
+            if (!token) throw new Error('登录失败：未返回 token')
+            wx.setStorageSync(KEY_TOKEN, token)
+            const openid = decodeTokenOpenid(token)
+            wx.setStorageSync(KEY_OPENID, openid)
+            resolve(openid)
+          })
+          .catch(reject)
+      },
+      fail: err => reject(err)
+    })
+  })
 }
 
 function getOpenid() {
   return wx.getStorageSync(KEY_OPENID) || ''
+}
+
+/* ---------- 字段归一化（后端 id/Long → 前端 _id/字符串） ---------- */
+function normalizeSpace(raw) {
+  if (!raw) return raw
+  return Object.assign({}, raw, { _id: String(raw.id) })
+}
+function normalizeSpaces(list) {
+  return (list || []).map(normalizeSpace)
+}
+function normalizeRecord(raw) {
+  if (!raw) return raw
+  return Object.assign({}, raw, { _id: String(raw.id) })
+}
+function normalizeRecords(list) {
+  return (list || []).map(normalizeRecord)
+}
+function mapSettings(s) {
+  s = s || {}
+  return {
+    defaultType: s.defaultType || DEFAULT_SETTINGS.defaultType,
+    defaultSpaceId: s.defaultSpaceId || '',
+    customTypes: Array.isArray(s.customTypes) ? s.customTypes : []
+  }
 }
 
 /* ---------- 比赛空间 ---------- */
@@ -63,11 +156,11 @@ function getCachedSpaces() {
   return wx.getStorageSync(KEY_SPACES) || []
 }
 
-// 从云端拉取当前用户参与的所有空间（清缓存/换设备后本地空时恢复用）
+// 从后端拉取当前用户参与的所有空间（清缓存/换设备后本地空时恢复用）
 // 写入本地缓存 + 同步到 globalData（records 用本地缓存，可能为空）
 async function fetchUserSpaces() {
-  const r = await callFn('getSpaces', {})
-  const list = r.spaces || []
+  const r = await apiRequest('GET', '/api/space/list')
+  const list = normalizeSpaces(r.spaces)
   wx.setStorageSync(KEY_SPACES, list)
   const app = getApp()
   if (app) {
@@ -107,7 +200,7 @@ function cacheSpace(space) {
 async function fetchMembers(space) {
   if (!space || !space.members || !space.members.length) return
   try {
-    const r = await callFn('user', { action: 'getMembers', openids: space.members })
+    const r = await apiRequest('POST', '/api/user/members', { openids: space.members })
     const list = r.list || []
     space._members = list
     const app = getApp()
@@ -171,47 +264,46 @@ async function switchSpace(spaceId) {
   return space
 }
 
-// 创建空间（云函数：服务端生成唯一邀请码）
+// 创建空间（后端：服务端生成唯一邀请码）
 async function createSpace({ name, playerAName, playerBName }) {
-  const r = await callFn('createSpace', { name, playerAName, playerBName })
-  return cacheSpace(r.space)
+  const r = await apiRequest('POST', '/api/space/create', { name, playerAName, playerBName })
+  return cacheSpace(normalizeSpace(r.space))
 }
 
-// 加入空间（云函数：服务端校验邀请码 + 把自己加进 members）
+// 加入空间（后端：服务端校验邀请码 + 把自己加进 members）
 async function joinSpace(inviteCode) {
-  const r = await callFn('joinSpace', { inviteCode })
-  return cacheSpace(r.space)
+  const r = await apiRequest('POST', '/api/space/join', { inviteCode })
+  return cacheSpace(normalizeSpace(r.space))
 }
 
-// 更新双人名字（云函数：服务端校验成员身份后更新空间）
+// 更新双人名字（后端：服务端校验成员身份后更新空间）
 async function updateSpace({ playerAName, playerBName }) {
   const space = getCachedSpace()
   if (!space || !space._id) throw new Error('当前没有比赛空间')
-  const r = await callFn('updateSpace', { spaceId: space._id, playerAName, playerBName })
-  return cacheSpace(r.space)
+  const r = await apiRequest('PUT', '/api/space/' + space._id, { playerAName, playerBName })
+  return cacheSpace(normalizeSpace(r.space))
 }
 
 /* ---------- 比赛记录 ----------
- * 增删改查全部走 record 云函数（match_records 集合安全规则全 false，
- * 客户端不能直连，成员校验在云函数里做）。本地缓存仍保留，保证秒开/离线可看。
+ * 增删改查全部走 /api/match/*（成员校验在后端 Service 里做）。本地缓存仍保留，保证秒开/离线可看。
  */
 function getCachedRecords(spaceId) {
   return wx.getStorageSync(keyRecords(spaceId)) || []
 }
 
-// 从云端拉取该空间全部记录，写入缓存后返回
+// 从后端拉取该空间全部记录，写入缓存后返回
 async function fetchRecords(spaceId) {
-  const r = await callFn('record', { action: 'list', spaceId })
-  const list = r.list || []
+  const r = await apiRequest('GET', '/api/match/list?spaceId=' + encodeURIComponent(spaceId))
+  const list = normalizeRecords(r.list)
   wx.setStorageSync(keyRecords(spaceId), list)
   touchSpaceRecords(spaceId, list)
   return list
 }
 
-// 新增一场比赛：云函数校验成员后写入，成功再更新本地缓存
+// 新增一场比赛：后端校验成员后写入，成功再更新本地缓存
 async function addRecord({ spaceId, type, time, loc, duration, a, b }) {
-  const r = await callFn('record', { action: 'add', spaceId, type, time, loc, duration, a, b })
-  const record = r.record
+  const r = await apiRequest('POST', '/api/match/create', { spaceId, type, time, loc, duration, a, b })
+  const record = normalizeRecord(r.record)
   const list = getCachedRecords(spaceId)
   list.unshift(record)
   wx.setStorageSync(keyRecords(spaceId), list)
@@ -219,10 +311,10 @@ async function addRecord({ spaceId, type, time, loc, duration, a, b }) {
   return record
 }
 
-// 更新一场比赛：云函数校验成员后修改，再同步本地缓存
+// 更新一场比赛：后端校验成员后修改，再同步本地缓存
 async function updateRecord(spaceId, id, { type, time, loc, duration, a, b }) {
-  const r = await callFn('record', { action: 'update', spaceId, id, type, time, loc, duration, a, b })
-  const patch = r.patch
+  const r = await apiRequest('PUT', '/api/match/' + id, { type, time, loc, duration, a, b })
+  const patch = normalizeRecord(r.record)
   const list = getCachedRecords(spaceId)
   const i = list.findIndex(rec => rec._id === id)
   if (i > -1) {
@@ -235,7 +327,7 @@ async function updateRecord(spaceId, id, { type, time, loc, duration, a, b }) {
 
 // 删除一场比赛
 async function deleteRecord(spaceId, id) {
-  await callFn('record', { action: 'delete', spaceId, id })
+  await apiRequest('DELETE', '/api/match/' + id)
   const list = getCachedRecords(spaceId).filter(r => r._id !== id)
   wx.setStorageSync(keyRecords(spaceId), list)
   touchSpaceRecords(spaceId, list)
@@ -253,11 +345,9 @@ function touchSpaceRecords(spaceId, list) {
 
 /* ---------- 用户设置（默认比赛类型 / 默认朋友空间 / 我的自定义类型） ----------
  * 设计要点：
- * 1. user_settings 集合一条文档 = 一个用户，_id 直接用 openid（天然唯一，绝不重复）。
- * 2. 安全规则 "auth.openid == doc._id"：每个用户只能读写自己的文档，
- *    所以「自定义比赛类型」按用户隔离 —— 朋友添加的类型不会出现在我的类型列表里。
- * 3. 云端为唯一事实来源 + 本地缓存（与比赛记录同一套思路）。
- * 4. 结构简单（就三个字段），直接用 doc.set 全量写入，不需要云函数。
+ * 1. user_settings 一条 = 一个用户，openid 当主键（天然唯一，绝不重复）。
+ * 2. 后端按 openid 隔离：每个用户只能读写自己的设置，「自定义比赛类型」互不影响。
+ * 3. 后端为唯一事实来源 + 本地缓存（与比赛记录同一套思路）。
  */
 const KEY_SETTINGS = 'mySettings'
 const DEFAULT_SETTINGS = {
@@ -282,32 +372,28 @@ function cacheSettings(s) {
   return s
 }
 
-// 从云端拉取我的设置；没有文档（新用户）返回默认值，不报错
+// 从后端拉取我的设置；没有文档（新用户）返回默认值，不报错
 async function fetchUserSettings() {
   try {
-    const openid = await ensureLogin()
-    const db = wx.cloud.database()
-    const res = await db.collection(config.DB.settings).doc(openid).get()
-    const raw = res.data || {}
-    return cacheSettings({
-      defaultType: raw.defaultType || DEFAULT_SETTINGS.defaultType,
-      defaultSpaceId: raw.defaultSpaceId || '',
-      customTypes: Array.isArray(raw.customTypes) ? raw.customTypes : []
-    })
+    const r = await apiRequest('GET', '/api/settings')
+    const s = mapSettings(r.settings)
+    return cacheSettings(s)
   } catch (e) {
-    // 文档不存在 / 网络失败：返回本地缓存（或默认值）
+    // 网络失败：返回本地缓存（或默认值）
     return getCachedSettings()
   }
 }
 
-// 保存我的设置（patch 局部更新，云端全量 set），先写本地再写云端
+// 保存我的设置（patch 局部更新），先写本地再写后端
 async function saveUserSettings(patch) {
   const next = Object.assign({}, getCachedSettings(), patch, { updatedAt: Date.now() })
   cacheSettings(next)
-  const openid = await ensureLogin()
-  const db = wx.cloud.database()
-  await db.collection(config.DB.settings).doc(openid).set({ data: next })
-  return next
+  const r = await apiRequest('PUT', '/api/settings', {
+    defaultType: next.defaultType,
+    defaultSpaceId: next.defaultSpaceId,
+    customTypes: next.customTypes
+  })
+  return cacheSettings(mapSettings(r.settings))
 }
 
 // 添加一个自定义比赛类型（存进我的 user_settings，用户间互不影响）
@@ -322,6 +408,7 @@ async function addCustomType(name) {
 }
 
 module.exports = {
+  apiRequest,
   ensureLogin,
   getOpenid,
   getCachedSpace,

@@ -1,30 +1,21 @@
 // app.js - 全局入口
-// 职责：初始化云开发、获取用户 openid、加载本地缓存的比赛空间
+// 职责：登录后端、获取用户 openid、加载本地缓存的比赛空间
 const config = require('./utils/config')
 const userService = require('./services/user')
 
 App({
   globalData: {
-    openid: '',          // 当前用户 openid（云函数返回）
+    openid: '',          // 当前用户 openid（登录后端后由 token 解出）
+    user: null,          // 我的用户资料 { openid, nickname, avatar, role }
     settings: null,      // 我的用户设置 { defaultType, defaultSpaceId, customTypes }
     spaces: [],          // 我参与的所有空间列表（每个 = 我 + 一个朋友，含 records 快照）
     space: null,         // 当前比赛空间 { _id, name, inviteCode, meName, friendName, members, creator }
     records: [],         // 当前空间的比赛记录（内存缓存，页面直接读）
-    syncing: false       // 正在从云端拉取数据
+    syncing: false       // 正在从后端拉取数据
   },
 
   onLaunch() {
-    // 1. 初始化云开发。CLOUD_ENV 留空 = 使用小程序默认环境
-    if (!wx.cloud) {
-      console.error('当前基础库版本过低，请使用 2.2.3 以上版本以使用云能力')
-      return
-    }
-    wx.cloud.init({
-      env: config.CLOUD_ENV || undefined,
-      traceUser: true
-    })
-
-    // 2. 取 openid + 恢复本地空间，并行进行
+    // 数据层已切换到 Java 后端 REST 接口（见 utils/db.js），不再需要 wx.cloud.init
     this.restoreSession()
   },
 
