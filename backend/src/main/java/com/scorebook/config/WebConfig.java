@@ -36,12 +36,19 @@ public class WebConfig implements WebMvcConfigurer {
     /**
      * 注册登录拦截器。
      * Step 1 拦截器目前是放行状态，这里先把框架搭好；后续接入 token 校验后，
-     * 可在此用 excludePathPatterns 把 /health、登录/换取 openid 等白名单接口排除掉。
+     * 可在此用 excludePathPatterns 把 /health、登录/换取 openid、Swagger 文档页等白名单接口排除掉。
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(loginInterceptor)
                 .addPathPatterns("/**")
-                .excludePathPatterns("/health");
+                // 白名单：健康检查 + Swagger/OpenAPI 在线文档相关路径（即使将来开启鉴权，文档页也保持可访问）
+                .excludePathPatterns(
+                        "/health",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/v3/api-docs",
+                        "/v3/api-docs/**",
+                        "/webjars/**");
     }
 }

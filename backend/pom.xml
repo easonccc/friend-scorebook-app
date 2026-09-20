@@ -47,6 +47,14 @@
             <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
+
+        <!-- 在线接口文档：SpringDoc OpenAPI 3.x（适配 Spring Boot 4 / Jackson 3）
+             启动后访问 http://localhost:8080/swagger-ui.html 即可看到自动生成的文档 -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>3.1.1</version>
+        </dependency>
     </dependencies>
 
     <build>

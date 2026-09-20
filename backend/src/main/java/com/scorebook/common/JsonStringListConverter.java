@@ -4,7 +4,9 @@ package com.scorebook.common;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import java.util.List;
-import tools.jackson.core.JsonProcessingException;
+// 注意：Jackson 3.x 已移除 JsonProcessingException（原 checked 异常），
+// 统一改为 tools.jackson.core.JacksonException（运行时异常，uncheck）。
+import tools.jackson.core.JacksonException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 
@@ -27,7 +29,7 @@ public class JsonStringListConverter implements AttributeConverter<List<String>,
     public String convertToDatabaseColumn(List<String> list) {
         try {
             return MAPPER.writeValueAsString(list == null ? List.of() : list);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new RuntimeException("List<String> 转 JSON 失败", e);
         }
     }
@@ -39,7 +41,7 @@ public class JsonStringListConverter implements AttributeConverter<List<String>,
         }
         try {
             return MAPPER.readValue(dbData, new TypeReference<List<String>>() {});
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             return List.of();
         }
     }
