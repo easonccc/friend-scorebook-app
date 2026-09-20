@@ -40,7 +40,10 @@ public class UserService {
         return repo.findByOpenid(openid).orElseGet(() -> {
             User u = new User();
             u.setOpenid(openid);
-            u.setNickname("微信用户");
+            // 昵称留空：微信在 wx.login 阶段不下发昵称（平台限制，getUserProfile 已废弃），
+            // 无法自动获取真实微信昵称。留空后由前端引导用户在「个人页」点输入框一键填入（input type=nickname）。
+            // 显示层对空昵称统一 fallback 成「我/朋友」，避免这里写死一个误导性的「微信用户」占位。
+            u.setNickname(null);
             u.setAvatar("avatar_01");
             u.setRole(isAdmin(openid) ? "admin" : "user");
             u.setCreatedAt(LocalDateTime.now());
