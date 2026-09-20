@@ -104,5 +104,10 @@ Page({
 
   goBack() {
     wx.navigateBack({ delta: 1 })
+  },
+
+  // 管理员入口：跳转到用户管理列表（入口仅在 role===admin 时显示）
+  goAdmin() {
+    wx.navigateTo({ url: '/pages/user-list/user-list' })
   }
 })

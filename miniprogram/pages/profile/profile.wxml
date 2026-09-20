@@ -12,6 +12,15 @@
     <view class="preview-role badge {{role === 'admin' ? 'win' : 'draw'}}">{{role === 'admin' ? '管理员' : '普通用户'}}</view>
   </view>
 
+  <!-- 管理员入口：仅管理员可见（跳用户管理列表） -->
+  <view wx:if="{{role === 'admin'}}" class="card admin-entry" bindtap="goAdmin">
+    <view class="ae-left">
+      <view class="ae-title">用户管理</view>
+      <view class="ae-sub">查看全部用户</view>
+    </view>
+    <view class="ae-arrow">›</view>
+  </view>
+
   <!-- 选择头像 -->
   <view class="card">
     <view class="card-title">选择头像</view>

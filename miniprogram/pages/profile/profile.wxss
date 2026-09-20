@@ -26,6 +26,18 @@
   font-size: 22rpx;
 }
 
+/* 管理员入口（仅 role===admin 时显示） */
+.admin-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20rpx;
+}
+.ae-left { display: flex; flex-direction: column; }
+.ae-title { font-size: 30rpx; font-weight: 700; }
+.ae-sub { font-size: 22rpx; color: var(--ink2); margin-top: 4rpx; }
+.ae-arrow { font-size: 44rpx; color: var(--ink2); }
+
 /* 头像网格 */
 .avatar-grid {
   display: flex;

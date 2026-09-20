@@ -56,6 +56,13 @@ public class UserService {
             u.setUpdatedAt(LocalDateTime.now());
             u = repo.save(u);
         }
+        // 角色始终以管理员白名单为准（即使历史数据 role 有误，登录即对齐；改 APP_ADMIN_OPENIDS 后下次登录自动同步）
+        String wantRole = isAdmin(openid) ? "admin" : "user";
+        if (!wantRole.equals(u.getRole())) {
+            u.setRole(wantRole);
+            u.setUpdatedAt(LocalDateTime.now());
+            u = repo.save(u);
+        }
         return u;
     }
 
