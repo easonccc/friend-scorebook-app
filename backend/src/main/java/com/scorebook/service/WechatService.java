@@ -1,6 +1,8 @@
 package com.scorebook.service;
 
 import com.scorebook.config.WechatProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import tools.jackson.core.JacksonException;
@@ -16,6 +18,11 @@ import java.util.Map;
 @Service
 public class WechatService {
 
+    private static final Logger log = LoggerFactory.getLogger(WechatService.class);
+    // 开发兜底 openid：未配置真实 AppSecret 时，登录直接映射到这个固定身份，
+    // 方便开发者工具跑通整条登录+数据链路。生产环境注入真实 WECHAT_SECRET 后不会被使用。
+    private static final String DEV_OPENID = "dev_openid_001";
+
     private final WechatProperties props;
     private final RestClient restClient = RestClient.create();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -25,6 +32,13 @@ public class WechatService {
     }
 
     public String code2Session(String code) {
+        // 开发兜底：secret 仍是占位符（未注入真实 WECHAT_SECRET）时，不真正调用微信，
+        // 直接返回固定 dev openid，让本地开发者工具无需真实密钥即可联调。
+        // 一旦注入真实密钥，此分支自动失效，走下方真实 code2session。
+        if (isDevPlaceholder()) {
+            log.warn("WechatService 处于开发兜底模式：secret 为占位符，code2Session 直接返回 {}，未真正调用微信", DEV_OPENID);
+            return DEV_OPENID;
+        }
         String url = "https://api.weixin.qq.com/sns/jscode2session"
                 + "?appid=" + props.getAppid()
                 + "&secret=" + props.getSecret()
@@ -45,5 +59,11 @@ public class WechatService {
         } catch (JacksonException e) {
             throw new RuntimeException("解析微信响应失败: " + body, e);
         }
+    }
+
+    // secret 是否为占位符（未配置真实 AppSecret）：空串或 changeme 都算
+    private boolean isDevPlaceholder() {
+        String s = props.getSecret();
+        return s == null || s.isBlank() || "changeme".equals(s);
     }
 }
