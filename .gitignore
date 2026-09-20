@@ -31,3 +31,6 @@ build/
 .env.*
 *.pem
 *.key
+
+# WorkBuddy 工作区记忆（非项目代码，不入库）
+.workbuddy/
