@@ -29,10 +29,18 @@ App({
         // 初始化/获取用户资料（含 role，走 services/user.js）
         userService.init().then(r => {
           this.globalData.user = r.user
-          console.log('[app] 当前用户:', r.user)
-        }).catch(err => console.warn('[app] user.init 失败:', err.message || err))
+          // 可见登录状态：wx.login 本身静默无界面，加 Toast 让用户一眼确认登录真的发生
+          const name = (r.user && r.user.nickname) || ''
+          wx.showToast({ title: name ? ('已登录：' + name) : '已登录', icon: 'success' })
+          console.log('[app] 当前用户 openid=', openid, 'user=', r.user)
+        }).catch(err => {
+          console.warn('[app] user.init 失败:', err.message || err)
+          // 拿到了 token 但拉资料失败，仍提示已登录
+          wx.showToast({ title: '已登录', icon: 'success' })
+        })
       }).catch(err => {
-        console.warn('获取 openid 失败（可能未登录/云环境未开通）:', err.errMsg || err)
+        // 失败原因已在 db.ensureLogin 内 Toast 过；这里补充开发期排查方向
+        console.warn('[app] 微信登录失败 —— 请检查：①开发者工具是否已扫码登录微信账号 ②是否勾选「不校验合法域名」 ③后端 WECHAT_SECRET 是否注入。err=', err.errMsg || err.message || err)
       })
 
       // 恢复空间列表（多朋友）：每个空间附带各自的记录缓存
