@@ -19,7 +19,8 @@
     <description>朋友比分账本 Java 后端（替换微信云开发）</description>
 
     <properties>
-        <java.version>26</java.version>
+        <!-- 目标 Java 25（LTS）：服务器宝塔面板 JDK 最高到 25；本地 JDK 26 可向下编译到 25 -->
+        <java.version>25</java.version>
     </properties>
 
     <dependencies>

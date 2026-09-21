@@ -61,15 +61,36 @@ function getToken() {
   return wx.getStorageSync(KEY_TOKEN) || ''
 }
 
+// 手写 base64url 解码：微信小程序「真机」没有 atob（那是浏览器全局函数），
+// 直接用它会出现「模拟器正常、真机解出空值」——因为 DevTools 模拟器是类浏览器环境有 atob，
+// 真机微信客户端没有 → 抛错 → catch 返回 '' → myOpenid 为空 → 视角反转。
+// 所以这里不依赖任何平台 API，按 6bit 分组自己还原。
+const B64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+function base64UrlDecode(input) {
+  const b64 = String(input).replace(/-/g, '+').replace(/_/g, '/').replace(/[^A-Za-z0-9+/]/g, '')
+  let out = ''
+  let buffer = 0
+  let bits = 0
+  for (let i = 0; i < b64.length; i++) {
+    const idx = B64_CHARS.indexOf(b64.charAt(i))
+    if (idx === -1) continue
+    buffer = (buffer << 6) | idx
+    bits += 6
+    if (bits >= 8) {
+      bits -= 8
+      out += String.fromCharCode((buffer >> bits) & 0xff)
+    }
+  }
+  return out
+}
+
 // 从 token 的 payload（base64url JSON，明文）里解出 openid，避免登录后再发一次请求。
-// 这是自家签发的 token，格式固定为 { openid, exp }，解码安全且零成本。
+// 这是自家签发的 token，格式固定为 { openid, exp }，两者均为 ASCII，解码安全且零成本。
 function decodeTokenOpenid(token) {
   try {
     const p = String(token).split('.')[1]
     if (!p) return ''
-    let b = p.replace(/-/g, '+').replace(/_/g, '/')
-    while (b.length % 4) b += '='
-    const json = JSON.parse(atob(b))
+    const json = JSON.parse(base64UrlDecode(p))
     return json.openid || ''
   } catch (e) {
     return ''
@@ -225,19 +246,23 @@ function memberOf(space, openid) {
 // 数据库存 a=创建者分/playerA 分/winner me=创建者赢；isCreator 决定前端是否需要翻转比分视角。
 // 兼容旧数据：优先读新字段（playerAName/playerBName/creatorOpenid），缺失时回退旧字段。
 function pairOf(space, openid) {
-  const meUser = memberOf(space, openid)
-  const friendOpenid = (space && space.members || []).find(m => m !== openid)
+  // 调用方可能传入空 openid（如 globalData.openid 在登录完成前尚未就绪），
+  // 这里回退到本地已登录的 openid，避免「当前用户视角」错乱导致 me/friend 整体反转。
+  const me = openid || getOpenid()
+  const meUser = memberOf(space, me)
+  const friendOpenid = (space && space.members || []).find(m => m !== me)
   const frUser = memberOf(space, friendOpenid)
-  const creatorView = util.isCreatorOf(space, openid)
+  const creatorView = util.isCreatorOf(space, me)
   const aName = space && (space.playerAName != null ? space.playerAName : space.meName)
   const bName = space && (space.playerBName != null ? space.playerBName : space.friendName)
-  return {
+  const result = {
     isCreator: creatorView,
     me: (meUser && meUser.nickname) || (creatorView ? aName : bName) || '我',
     friend: (frUser && frUser.nickname) || (creatorView ? bName : aName) || '朋友',
     meAvatar: util.avatarEmojiOf(meUser && meUser.avatar),
     frAvatar: util.avatarEmojiOf(frUser && frUser.avatar)
   }
+  return result
 }
 
 // 切换当前空间：恢复该空间的本地缓存记录，并后台拉一次云端最新

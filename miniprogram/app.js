@@ -26,6 +26,11 @@ App({
       // 先取 openid（云函数），失败不阻塞页面
       db.ensureLogin().then(openid => {
         this.globalData.openid = openid
+        // 登录就绪后强制刷新当前页面：修复首屏渲染时 openid 尚未就绪、
+        // 导致「我/朋友」视角反转（设置页/首页/统计页名字错乱）的问题
+        const pages = getCurrentPages()
+        const cur = pages[pages.length - 1]
+        if (cur && typeof cur.onShow === 'function') cur.onShow()
         // 初始化/获取用户资料（含 role，走 services/user.js）
         userService.init().then(r => {
           this.globalData.user = r.user

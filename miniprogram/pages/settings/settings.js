@@ -130,10 +130,15 @@ Page({
     const meName = (this.data.meName || '').trim().slice(0, 8) || '我'
     const friendName = (this.data.friendName || '').trim().slice(0, 8) || '小晗子'
     if (!app.globalData.space) return
+    // 数据模型约定：playerAName=创建者名、playerBName=朋友名（创建者视角）。
+    // 非创建者编辑时，要把界面上的「我/朋友」映射到正确的 A/B，否则会污染创建者视角的兜底名。
+    const isCreator = util.isCreatorOf(app.globalData.space, app.globalData.openid || db.getOpenid())
+    const aName = isCreator ? meName : friendName
+    const bName = isCreator ? friendName : meName
     this.setData({ saving: true })
     try {
-      await db.updateSpace({ playerAName: meName, playerBName: friendName })
-      app.setNames(meName, friendName)
+      await db.updateSpace({ playerAName: aName, playerBName: bName })
+      app.setNames(aName, bName)
       this.setData({ meName, friendName })
       wx.showToast({ title: '名字已同步', icon: 'none' })
       this.load()
