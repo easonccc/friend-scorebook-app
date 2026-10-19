@@ -135,6 +135,14 @@ Page({
 
     const st = statsUtil.buildStats(list)
 
+    // 金额统计展示值：净输赢随正负翻转文案与颜色
+    const net = st.netAmount
+    const netText = (net >= 0 ? '+¥' : '-¥') + Math.abs(net).toFixed(2)
+    const netLabel = net > 0 ? '我净赚' : net < 0 ? '我净亏' : '持平'
+    const netCls = net > 0 ? 'pos' : net < 0 ? 'neg' : 'zero'
+    const myWinAmountText = '¥' + st.myWinAmount.toFixed(2)
+    const frWinAmountText = '¥' + st.frWinAmount.toFixed(2)
+
     // 最近 10 场（list 已是倒序，取前 10 再正序展示）
     const recent = list.slice(0, 10).reverse()
     let rM = 0, rF = 0
@@ -148,6 +156,15 @@ Page({
     spaces.forEach(s => { friendMap[s._id] = this._pairOf(s).friend })
     const matchList = list.slice(0, 30).map(r => {
       const frName = friendMap[r._sid] || '朋友'
+      // 单场金额回显：赢家方向标注 +¥ / -¥，平局仅显示金额
+      let amountText = ''
+      let amountCls = ''
+      if (r.amount != null && !isNaN(Number(r.amount))) {
+        const amt = Number(r.amount)
+        if (r.winner === 'me') { amountText = '我赢 +¥' + amt.toFixed(2); amountCls = 'pos' }
+        else if (r.winner === 'friend') { amountText = '朋友赢 -¥' + amt.toFixed(2); amountCls = 'neg' }
+        else { amountText = '¥' + amt.toFixed(2); amountCls = 'zero' }
+      }
       return {
         _id: r._id,
         sid: r._sid,
@@ -158,7 +175,9 @@ Page({
         friendName: frName,
         timeText: util.fmtTime(r.time),
         winText: statsUtil.winnerText(r.winner, meName, frName),
-        cls: r.winner === 'me' ? 'me' : r.winner === 'friend' ? 'fr' : 'dr'
+        cls: r.winner === 'me' ? 'me' : r.winner === 'friend' ? 'fr' : 'dr',
+        amountText,
+        amountCls
       }
     })
 
@@ -185,6 +204,9 @@ Page({
       myPts: st.myPts, frPts: st.frPts,
       myAvg: st.myAvg.toFixed(1),
       frAvg: st.frAvg.toFixed(1),
+      amountGames: st.amountGames,
+      netText, netLabel, netCls,
+      myWinAmountText, frWinAmountText,
       types: st.types.map(t => Object.assign({}, t, {
         emoji: util.emojiOf(t.type),
         rateText: Math.round(t.mRate) + '%'

@@ -62,6 +62,32 @@
       </view>
     </view>
 
+    <!-- 金额统计：整体输赢（仅在有金额记录时显示） -->
+    <view class="card" wx:if="{{amountGames > 0}}">
+      <view class="card-title">
+        <text>金额统计</text>
+        <text class="recent-text">整体输赢</text>
+      </view>
+      <view class="amount-hero">
+        <view class="amount-hero-label">{{netLabel}}</view>
+        <view class="amount-hero-num {{netCls}}">{{netText}}</view>
+      </view>
+      <view class="big-row">
+        <view class="big-item">
+          <view class="big-num pos">{{myWinAmountText}}</view>
+          <view class="big-label">我赢总额</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num neg">{{frWinAmountText}}</view>
+          <view class="big-label">朋友赢总额</view>
+        </view>
+        <view class="big-item">
+          <view class="big-num">{{amountGames}}</view>
+          <view class="big-label">涉及金额场次</view>
+        </view>
+      </view>
+    </view>
+
     <!-- 胜率 -->
     <view class="card">
       <view class="card-title">胜率</view>
@@ -163,7 +189,10 @@
           <view class="match-sub">{{item.type}} · {{item.timeText}}</view>
         </view>
         <view class="match-right">
-          <view class="badge {{item.cls}}">{{item.winText}}</view>
+          <view class="match-right-stack">
+            <view class="badge {{item.cls}}">{{item.winText}}</view>
+            <view class="match-amt {{item.amountCls}}" wx:if="{{item.amountText}}">{{item.amountText}}</view>
+          </view>
           <view class="match-arrow">›</view>
         </view>
       </view>

@@ -46,7 +46,27 @@
 .big-num.me { color: var(--green-d); }
 .big-num.fr { color: var(--friend); }
 .big-num.dr { color: var(--draw-deep); }
+.big-num.pos { color: var(--green-d); }
+.big-num.neg { color: var(--lose-deep); }
 .big-label { font-size: 22rpx; color: var(--ink2); }
+
+/* 金额统计主数字 */
+.amount-hero {
+  text-align: center;
+  padding: 18rpx 0 26rpx;
+}
+.amount-hero-label {
+  font-size: 24rpx;
+  color: var(--ink2);
+  margin-bottom: 10rpx;
+}
+.amount-hero-num {
+  font-size: 64rpx;
+  font-weight: 800;
+}
+.amount-hero-num.pos { color: var(--green-d); }
+.amount-hero-num.neg { color: var(--lose-deep); }
+.amount-hero-num.zero { color: var(--ink); }
 
 /* 胜率条 */
 .rate-line {
@@ -179,6 +199,19 @@
   align-items: center;
   gap: 12rpx;
 }
+.match-right-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8rpx;
+}
+.match-amt {
+  font-size: 22rpx;
+  font-weight: 600;
+}
+.match-amt.pos { color: var(--green-d); }
+.match-amt.neg { color: var(--lose-deep); }
+.match-amt.zero { color: var(--ink2); }
 .badge.me { background: var(--win); color: var(--win-deep); }
 .badge.fr { background: var(--lose); color: var(--lose-deep); }
 .badge.dr { background: var(--draw); color: var(--draw-deep); }

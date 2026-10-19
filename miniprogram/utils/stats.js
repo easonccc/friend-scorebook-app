@@ -30,6 +30,7 @@ function buildStats(records) {
   const n = records.length
   let m = 0, f = 0, d = 0
   let myPts = 0, frPts = 0
+  let myWinAmount = 0, frWinAmount = 0, amountGames = 0   // 金额统计
   const typeMap = {}
 
   records.forEach(r => {
@@ -39,6 +40,14 @@ function buildStats(records) {
     else d++
     myPts += r.a
     frPts += r.b
+
+    // 金额统计：amount 代表赢家赢得的金额数（仅统计填写了金额的场次）
+    if (r.amount != null && !isNaN(Number(r.amount))) {
+      amountGames++
+      const amt = Number(r.amount)
+      if (w === 'me') myWinAmount += amt
+      else if (w === 'friend') frWinAmount += amt
+    }
 
     const t = r.type || '台球'
     if (!typeMap[t]) typeMap[t] = { type: t, n: 0, m: 0, f: 0, d: 0 }
@@ -62,6 +71,10 @@ function buildStats(records) {
     myPts, frPts,
     myAvg: n ? myPts / n : 0,
     frAvg: n ? frPts / n : 0,
+    myWinAmount,
+    frWinAmount,
+    netAmount: myWinAmount - frWinAmount,   // 整体输赢：正数=我赚，负数=我亏
+    amountGames,
     recent,
     types: Object.keys(typeMap).map(k => {
       const g = typeMap[k]
