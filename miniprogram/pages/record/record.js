@@ -42,6 +42,8 @@ Page({
     timeVal: '',
     // 地点
     loc: '',
+    // 金额（选填）：赢家赢得的金额，不填表示没有金钱输赢
+    amount: '',
     // 时长
     dur: 0,
     durOptions: DUR_OPTIONS,
@@ -94,6 +96,7 @@ Page({
           b: myB,
           timeStamp: rec.time || Date.now(),
           loc: rec.loc || '',
+          amount: rec.amount != null ? rec.amount : '',
           dur: rec.duration || 0
         })
         this.syncDerived()
@@ -271,8 +274,15 @@ Page({
     this.syncDerived()
   },
 
-  /* ---------- 地点 / 时长 ---------- */
+  /* ---------- 地点 / 时长 / 金额 ---------- */
   onLocInput(e) { this.setData({ loc: e.detail.value }) },
+  // 金额：选填，空字符串表示不记录；存库时转成数字或 null
+  onAmountInput(e) { this.setData({ amount: e.detail.value }) },
+  _toAmount(v) {
+    if (v === '' || v == null) return null
+    const n = Number(v)
+    return isNaN(n) ? null : n
+  },
   pickDur(e) {
     this.setData({ dur: Number(e.currentTarget.dataset.v), durCustom: '' })
   },
@@ -284,7 +294,7 @@ Page({
   /* ---------- 保存 ---------- */
   async onSave() {
     if (this.data.saving) return
-    const { a, b, type, timeStamp, loc, dur, isEdit, editId } = this.data
+    const { a, b, type, timeStamp, loc, dur, amount, isEdit, editId } = this.data
     if (a === 0 && b === 0) {
       wx.showToast({ title: '先记个比分吧！', icon: 'none' })
       return
@@ -299,7 +309,7 @@ Page({
     const p = this._pairOf(app.globalData.space || {})
     const realA = p.isCreator ? a : b   // 创建者分
     const realB = p.isCreator ? b : a   // 朋友分
-    const payload = { type, time: timeStamp, loc, duration: dur, a: realA, b: realB }
+    const payload = { type, time: timeStamp, loc, duration: dur, a: realA, b: realB, amount: this._toAmount(amount) }
 
     try {
       if (isEdit) {

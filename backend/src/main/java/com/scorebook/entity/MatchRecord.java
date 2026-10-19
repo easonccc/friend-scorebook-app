@@ -50,6 +50,10 @@ public class MatchRecord {
     @Column(name = "b")
     private Integer b;
 
+    /** 金额（选填）：赢家赢得的金额，单位元；不填为 null */
+    @Column(name = "amount", precision = 10, scale = 2)
+    private java.math.BigDecimal amount;
+
     /** 胜方：me / friend / draw */
     @Column(name = "winner", length = 16)
     private String winner;
@@ -125,6 +129,14 @@ public class MatchRecord {
 
     public void setB(Integer b) {
         this.b = b;
+    }
+
+    public java.math.BigDecimal getAmount() {
+        return amount;
+    }
+
+    public void setAmount(java.math.BigDecimal amount) {
+        this.amount = amount;
     }
 
     public String getWinner() {

@@ -69,6 +69,19 @@
 
   <!-- 辅助信息 -->
   <view class="card info-card">
+    <view class="info-row">
+      <text class="info-label">💰 金额</text>
+      <input
+        class="info-input"
+        type="digit"
+        value="{{amount}}"
+        placeholder="选填，赢家赢得的金额"
+        placeholder-class="ph"
+        maxlength="10"
+        bindinput="onAmountInput"
+      />
+    </view>
+
     <view class="info-row" bindtap="openTimeSheet">
       <text class="info-label">🕐 时间</text>
       <text class="info-value">{{timeText}}</text>

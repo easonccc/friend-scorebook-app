@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS match_records (
   duration       INT          DEFAULT 0,                -- 时长（分钟）
   a              INT          DEFAULT 0,                -- A 方得分
   b              INT          DEFAULT 0,                -- B 方得分
+  amount         DECIMAL(10,2) DEFAULT NULL,            -- 金额（选填）：赢家赢得的金额（元）
   winner         VARCHAR(16)  DEFAULT 'draw',           -- 'me' | 'friend' | 'draw'
   creator_openid VARCHAR(64)  DEFAULT '',
   created_at     DATETIME     DEFAULT NULL,
@@ -55,6 +56,18 @@ CREATE TABLE IF NOT EXISTS match_records (
   KEY idx_records_space (space_id),
   KEY idx_records_space_time (space_id, time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- 兼容已存在的旧库：schema.sql 用 IF NOT EXISTS 不会改已有表结构，
+-- 这里幂等补列（列已存在则执行无害的 SELECT 1）。不加这列会让上面的 INSERT 因缺列报错。
+-- 说明：MySQL 不支持 IF 流程控制写在普通脚本里，所以用「动态拼 SQL + 永远合法的 SELECT 1」实现幂等。
+SELECT COUNT(*) INTO @has_amount FROM information_schema.columns
+  WHERE table_schema = DATABASE() AND table_name = 'match_records' AND column_name = 'amount';
+SET @add_amount_sql = IF(@has_amount = 0,
+  'ALTER TABLE match_records ADD COLUMN amount DECIMAL(10,2) DEFAULT NULL',
+  'SELECT 1');
+PREPARE stmt_add_amount FROM @add_amount_sql;
+EXECUTE stmt_add_amount;
+DEALLOCATE PREPARE stmt_add_amount;
 
 -- 用户设置（一人一条，openid 当主键）
 CREATE TABLE IF NOT EXISTS user_settings (

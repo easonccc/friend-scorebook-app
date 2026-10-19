@@ -323,8 +323,8 @@ async function fetchRecords(spaceId) {
 }
 
 // 新增一场比赛：后端校验成员后写入，成功再更新本地缓存
-async function addRecord({ spaceId, type, time, loc, duration, a, b }) {
-  const r = await apiRequest('POST', '/api/match/create', { spaceId, type, time, loc, duration, a, b })
+async function addRecord({ spaceId, type, time, loc, duration, a, b, amount }) {
+  const r = await apiRequest('POST', '/api/match/create', { spaceId, type, time, loc, duration, a, b, amount })
   const record = normalizeRecord(r.record)
   const list = getCachedRecords(spaceId)
   list.unshift(record)
@@ -334,8 +334,8 @@ async function addRecord({ spaceId, type, time, loc, duration, a, b }) {
 }
 
 // 更新一场比赛：后端校验成员后修改，再同步本地缓存
-async function updateRecord(spaceId, id, { type, time, loc, duration, a, b }) {
-  const r = await apiRequest('PUT', '/api/match/' + id, { type, time, loc, duration, a, b })
+async function updateRecord(spaceId, id, { type, time, loc, duration, a, b, amount }) {
+  const r = await apiRequest('PUT', '/api/match/' + id, { type, time, loc, duration, a, b, amount })
   const patch = normalizeRecord(r.record)
   const list = getCachedRecords(spaceId)
   const i = list.findIndex(rec => rec._id === id)

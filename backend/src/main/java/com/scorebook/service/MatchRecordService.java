@@ -33,10 +33,11 @@ public class MatchRecordService {
 
     /** 新增一场比赛。winner 由比分自动算：a>b→me，a<b→friend，相等→draw。 */
     public MatchRecord add(String openid, Long spaceId, String type, Long time,
-                           String loc, Integer duration, Integer a, Integer b) {
+                           String loc, Integer duration, Integer a, Integer b,
+                           java.math.BigDecimal amount) {
         requireMember(spaceId, openid);
         MatchRecord r = new MatchRecord();
-        fill(r, spaceId, type, time, loc, duration, a, b);
+        fill(r, spaceId, type, time, loc, duration, a, b, amount);
         r.setCreatorOpenid(openid);
         r.setCreatedAt(LocalDateTime.now());
         r.setUpdatedAt(LocalDateTime.now());
@@ -45,11 +46,12 @@ public class MatchRecordService {
 
     /** 编辑一场比赛（仅成员可改）。 */
     public MatchRecord update(String openid, Long id, String type, Long time,
-                              String loc, Integer duration, Integer a, Integer b) {
+                              String loc, Integer duration, Integer a, Integer b,
+                              java.math.BigDecimal amount) {
         MatchRecord r = repo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("记录不存在"));
         requireMember(r.getSpaceId(), openid);
-        fill(r, r.getSpaceId(), type, time, loc, duration, a, b);
+        fill(r, r.getSpaceId(), type, time, loc, duration, a, b, amount);
         r.setUpdatedAt(LocalDateTime.now());
         return repo.save(r);
     }
@@ -63,7 +65,8 @@ public class MatchRecordService {
     }
 
     private void fill(MatchRecord r, Long spaceId, String type, Long time,
-                      String loc, Integer duration, Integer a, Integer b) {
+                      String loc, Integer duration, Integer a, Integer b,
+                      java.math.BigDecimal amount) {
         r.setSpaceId(spaceId);
         r.setType(type == null || type.isBlank() ? "台球" : type.trim());
         r.setTime(time == null ? System.currentTimeMillis() : time);
@@ -74,6 +77,8 @@ public class MatchRecordService {
         r.setA(ia);
         r.setB(ib);
         r.setWinner(ia > ib ? "me" : ia < ib ? "friend" : "draw");
+        // 金额：负数视为无效，归零为 null（即"没有金钱输赢"）
+        r.setAmount(amount != null && amount.compareTo(java.math.BigDecimal.ZERO) < 0 ? null : amount);
     }
 
     private void requireMember(Long spaceId, String openid) {

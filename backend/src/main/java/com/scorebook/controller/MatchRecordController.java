@@ -52,7 +52,8 @@ public class MatchRecordController {
                 (String) body.get("loc"),
                 toInt(body.get("duration")),
                 toInt(body.get("a")),
-                toInt(body.get("b")));
+                toInt(body.get("b")),
+                toBigDecimal(body.get("amount")));
         return Result.ok("record", r);
     }
 
@@ -68,7 +69,8 @@ public class MatchRecordController {
                 (String) body.get("loc"),
                 toInt(body.get("duration")),
                 toInt(body.get("a")),
-                toInt(body.get("b")));
+                toInt(body.get("b")),
+                toBigDecimal(body.get("amount")));
         return Result.ok("record", r);
     }
 
@@ -97,6 +99,17 @@ public class MatchRecordController {
         if (o instanceof Number n) return n.intValue();
         try {
             return Integer.parseInt(o.toString());
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** JSON 数字统一转 BigDecimal（金额用，避免浮点精度问题）。 */
+    private java.math.BigDecimal toBigDecimal(Object o) {
+        if (o == null) return null;
+        if (o instanceof Number n) return java.math.BigDecimal.valueOf(n.doubleValue());
+        try {
+            return new java.math.BigDecimal(o.toString());
         } catch (Exception e) {
             return null;
         }
