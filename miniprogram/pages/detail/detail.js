@@ -63,7 +63,9 @@ Page({
         b: v.b,
         total: v.a + v.b,
         winnerText: stats.winnerText(v.winner, meName, friendName),
-        winClass: v.winner === 'me' ? 'win' : v.winner === 'friend' ? 'lose' : 'draw'
+        winClass: v.winner === 'me' ? 'win' : v.winner === 'friend' ? 'lose' : 'draw',
+        // 金额：选填，仅在有值时展示（代表赢家赢得的金额）
+        amountText: rec.amount != null ? '¥' + Number(rec.amount).toFixed(2) : ''
       }
     })
   },

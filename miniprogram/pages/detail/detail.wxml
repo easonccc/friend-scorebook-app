@@ -50,6 +50,10 @@
         <text class="di-label">⏱ 时长</text>
         <text class="di-value">{{rec.durationText}}</text>
       </view>
+      <view class="di-row" wx:if="{{rec.amountText}}">
+        <text class="di-label">💰 金额</text>
+        <text class="di-value">{{rec.amountText}}</text>
+      </view>
     </view>
 
     <!-- 操作 -->
